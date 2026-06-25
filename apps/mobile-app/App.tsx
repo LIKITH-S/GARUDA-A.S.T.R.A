@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, BackHandler, ToastAndroid, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 // Theme & Mock Data
 import { COLORS, TYPOGRAPHY, SPACING, ROUNDED } from './src/constants/theme';
@@ -40,6 +41,7 @@ import { LogsScreen } from './src/screens/LogsScreen';
 import { MapScreen } from './src/screens/MapScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { PermissionGuardScreen } from './src/screens/PermissionGuardScreen';
+import { DutyToggleScreen } from './src/screens/DutyToggleScreen';
 import { TacticalAlertPopup } from './src/components/TacticalAlertPopup';
 
 type ScreenType = 'alerts' | 'details' | 'cases' | 'logs' | 'map' | 'profile';
@@ -51,6 +53,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('alerts');
   const [selectedAlert, setSelectedAlert] = useState<AlertItem | null>(null);
   const [permissionsAuthorized, setPermissionsAuthorized] = useState(false);
+  const [dutyAcknowledged, setDutyAcknowledged] = useState(false);
 
   // Live state tracking
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS);
@@ -146,6 +149,32 @@ export default function App() {
     }
   };
 
+  // Hardware Back Button Interception (Prevent exit if on duty)
+  useEffect(() => {
+    const onBackPress = () => {
+      if (isAuthorized && officer.status === 'ACTIVE DUTY') {
+        if (Platform.OS === 'android') {
+          // Send app to background simulating the Home button press
+          IntentLauncher.startActivityAsync('android.intent.action.MAIN', {
+            category: 'android.intent.category.HOME',
+            flags: 268435456, // FLAG_ACTIVITY_NEW_TASK
+          }).catch(() => {
+             // Fallback if intent fails
+             ToastAndroid.show('Tactical Terminal running. Press Home to minimize, or go OFF DUTY to exit.', ToastAndroid.SHORT);
+          });
+        }
+        return true; // Prevent default exit
+      }
+      return false; // Let default behavior (exit app) proceed
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthorized, officer.status]);
+
   // Authentication Callbacks
   const handleLoginSuccess = (data: { unitId: string; role: string; email?: string; full_name?: string }) => {
     setIsAuthorized(true);
@@ -157,9 +186,10 @@ export default function App() {
       name: data.full_name || data.email?.split('@')[0].toUpperCase() || 'OFFICER',
       unitId: data.unitId,
       rank: data.role.toUpperCase(),
+      status: 'OFF DUTY',
     }));
 
-    // Immediate telemetry broadcast on login
+    // Telemetry broadcast will be dropped silently until duty is activated
     DutyManager.sendEvent('LOGIN', data.unitId, data.full_name || data.email || 'OFFICER', 'OFFICER LOGGED IN');
   };
 
@@ -183,6 +213,7 @@ export default function App() {
             // Immediate telemetry broadcast BEFORE clearing session
             DutyManager.sendEvent('LOGOUT', officer.unitId, officer.name, 'OFFICER LOGGED OUT');
             setIsAuthorized(false);
+            setDutyAcknowledged(false);
             setCurrentScreen('alerts');
             setSelectedAlert(null);
             setAlerts(INITIAL_ALERTS); // Reset alerts to prevent stale duplicates
@@ -191,6 +222,11 @@ export default function App() {
         },
       ]
     );
+  };
+
+  const handleDutyAcknowledge = (status: string) => {
+    handleUpdateOfficerStatus(status);
+    setDutyAcknowledged(true);
   };
 
   // State update callbacks
@@ -352,6 +388,20 @@ export default function App() {
         <View style={styles.rootContainer}>
           <StatusBar style="light" />
           <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (!dutyAcknowledged) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.rootContainer}>
+          <StatusBar style="light" />
+          <DutyToggleScreen 
+            officerName={officer.name} 
+            onAcknowledge={handleDutyAcknowledge} 
+          />
         </View>
       </SafeAreaProvider>
     );

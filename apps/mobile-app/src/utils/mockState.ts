@@ -89,7 +89,7 @@ export const INITIAL_OFFICER: OfficerProfile = {
   name: 'Surya Pratap',
   rank: 'Tactical Inspector',
   shift: 'Night Duty (18:00 - 06:00)',
-  status: 'ACTIVE DUTY',
+  status: 'OFF DUTY',
   commsLink: 'MUN-HQ-SRV-04',
 };
 
