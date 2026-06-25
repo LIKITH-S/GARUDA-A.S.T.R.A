@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Bell, Clock, Globe, Shield } from 'lucide-react'
+import { Search, Bell, Clock, Globe, Shield, Menu } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter()
   const { toast } = useToast()
   // useAuth removed since we no longer display user info here
@@ -30,9 +30,16 @@ export function Topbar() {
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 sticky top-0 z-50">
-      <div className="flex items-center gap-6 flex-1">
-        <div className="relative max-w-md w-full">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+      <div className="flex items-center gap-4 flex-1">
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="relative max-w-md w-full hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input 
             type="text" 
@@ -44,7 +51,7 @@ export function Topbar() {
           />
         </div>
         
-        <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
+        <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-muted-foreground">
           <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full border border-border">
             <Globe className="w-3 h-3 text-primary" />
             <span>MISSION UTC: {currentTime || '—'}</span>

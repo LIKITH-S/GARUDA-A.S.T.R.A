@@ -40,8 +40,8 @@ export function Sidebar() {
   const { role, fullName, logout } = useAuth()
 
   return (
-    <div className="flex flex-col w-64 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
-      <div className="p-4 border-b border-border/40 flex items-center justify-center bg-secondary/10">
+    <div className="flex flex-col w-64 bg-card border-r border-border h-full overflow-y-auto">
+      <div className="p-4 border-b border-border/40 flex items-center justify-center bg-secondary/10 shrink-0">
         <img
           src="/GarudASTRAtransparent.png"
           alt="Garuda ASTRA Logo"

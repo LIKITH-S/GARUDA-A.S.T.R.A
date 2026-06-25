@@ -93,10 +93,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Command Overview</h1>
-          <div className="text-muted-foreground flex items-center gap-2">
+          <div className="text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
             Real-time surveillance and system intelligence.
             <Badge variant={isConnected ? "success" : "destructive"}>
               {isConnected ? "Live Connection" : "Disconnected"}
@@ -104,7 +104,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button size="sm" onClick={() => router.push('/alerts')}>
+          <Button size="sm" onClick={() => router.push('/alerts')} className="w-full sm:w-auto">
             <ShieldAlert className="w-4 h-4 mr-2" />
             Active Alerts
           </Button>
@@ -126,8 +126,8 @@ export default function Dashboard() {
             {latestMatch && <Badge variant="success" className="animate-glow-ring">MATCH CONFIRMED</Badge>}
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-6 h-[240px]">
-              <div className="relative rounded-lg overflow-hidden border border-border group bg-slate-900 flex items-center justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[240px]">
+              <div className="relative rounded-lg overflow-hidden border border-border group bg-slate-900 flex items-center justify-center min-h-[200px] md:min-h-0">
                 <div className="absolute top-2 left-2 z-10">
                   <Badge variant="secondary" className="bg-black/60 backdrop-blur-sm border-white/10">
                     {latestMatch?.camera || 'SURVEILLANCE CAM'}
@@ -158,7 +158,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative rounded-lg overflow-hidden border border-border bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+              <div className="relative rounded-lg overflow-hidden border border-border bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center min-h-[200px] md:min-h-0">
                 <div className="absolute top-2 left-2 z-10">
                   <Badge variant="secondary" className="bg-black/60 backdrop-blur-sm border-white/10">
                     DATABASE RECORD
@@ -185,8 +185,8 @@ export default function Dashboard() {
             </div>
             
             {latestMatch && (
-              <div className="mt-6 flex items-center justify-between pt-6 border-t border-border">
-                 <div className="flex gap-6">
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between pt-6 border-t border-border gap-4">
+                 <div className="flex flex-wrap gap-4 md:gap-6">
                    <div>
                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Target ID</p>
                      <p className="text-sm font-medium">{latestMatch.name}</p>
@@ -253,12 +253,12 @@ export default function Dashboard() {
       </div>
       
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
            <div>
              <CardTitle className="text-lg">Recent Patrol Units Status</CardTitle>
              <CardDescription>Live deployment tracking via WebSocket</CardDescription>
            </div>
-           <Button variant="outline" size="sm" onClick={() => router.push('/patrol')}>Manage Units</Button>
+           <Button variant="outline" size="sm" onClick={() => router.push('/patrol')} className="w-full sm:w-auto">Manage Units</Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -266,7 +266,7 @@ export default function Dashboard() {
                <p className="text-sm text-muted-foreground">No live telemetry received yet.</p>
              ) : (
                Object.values(patrolUnits).map((unit: any, i) => (
-                 <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/50 transition-colors border border-transparent border-border cursor-pointer"
+                 <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg hover:bg-secondary/50 transition-colors border border-transparent border-border cursor-pointer gap-4"
                       onClick={() => router.push('/patrol')}>
                    <div className="flex items-center gap-4">
                      <div className="w-10 h-10 rounded bg-secondary flex items-center justify-center font-bold text-[10px] truncate px-1">
@@ -277,8 +277,8 @@ export default function Dashboard() {
                        <p className="text-xs text-muted-foreground">ID: {unit.id}</p>
                      </div>
                    </div>
-                   <div className="flex items-center gap-6">
-                      <div className="text-right">
+                   <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6">
+                      <div className="text-left sm:text-right">
                         <Badge variant="success">{unit.status}</Badge>
                         <p className="text-[10px] text-muted-foreground mt-1">{unit.time}</p>
                       </div>
