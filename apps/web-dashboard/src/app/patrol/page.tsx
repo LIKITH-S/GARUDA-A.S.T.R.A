@@ -3,189 +3,147 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
-import { Button } from "@/components/ui/Button"
-import { 
-  ShieldAlert, 
-  MapPin, 
-  Radio, 
-  Navigation, 
-  Phone,
-  Cpu,
-  MoreVertical,
-  Activity,
-  Battery
-} from 'lucide-react'
+import { ShieldAlert, Crosshair, Map as MapIcon, Battery, Navigation, Radio } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useWebSocket } from '@/lib/websocket'
 
-interface TelemetryRecord {
-  unitId: string;
-  latitude: number;
-  longitude: number;
-  batteryLevel: number;
-  latencyMs: number;
-  timestamp: number;
-  lastSeen?: string;
-}
-
-const STATIC_UNIT_TEMPLATES: Record<string, { type: string; location: string; status: string; health: string }> = {
-  'P-09': { type: 'Rapid Response', location: 'Indiranagar Sector 4', status: 'En Route', health: 'Optimal' },
-  'P-04': { type: 'Surveillance', location: 'MG Road Junction', status: 'On Site', health: 'Optimal' },
-  'P-12': { type: 'General Patrol', location: 'Koramangala 1st Block', status: 'Standby', health: 'Check Required' },
-  'P-22': { type: 'Interceptor', location: 'Whitefield Flyover', status: 'Patrolling', health: 'Optimal' },
-  'P-31': { type: 'Rapid Response', location: 'Jayanagar 4th Block', status: 'Standby', health: 'Optimal' },
-  'P-15': { type: 'Surveillance', location: 'Hebbal Flyover', status: 'En Route', health: 'Optimal' },
-};
-
-export default function PatrolPage() {
-  const [patrolUnits, setPatrolUnits] = useState<any[]>([]);
-
-  const fetchTelemetry = async () => {
-    try {
-      const res = await fetch('/api/telemetry');
-      if (res.ok) {
-        const liveData: TelemetryRecord[] = await res.json();
-        
-        // Merge live data with our layout templates
-        const merged = Object.keys(STATIC_UNIT_TEMPLATES).map((id) => {
-          const live = liveData.find((u) => u.unitId === id);
-          const template = STATIC_UNIT_TEMPLATES[id];
-
-          if (live) {
-            // Compute dynamic location readout based on GPS coordinates
-            const locationStr = `${live.latitude.toFixed(4)}° N, ${live.longitude.toFixed(4)}° E`;
-            return {
-              id,
-              ...template,
-              location: locationStr,
-              battery: live.batteryLevel,
-              ping: `${live.latencyMs}ms`,
-            };
-          }
-
-          // Fallback static mock defaults
-          return {
-            id,
-            ...template,
-            battery: id === 'P-09' ? 88 : id === 'P-04' ? 92 : id === 'P-12' ? 45 : id === 'P-22' ? 76 : id === 'P-31' ? 98 : 62,
-            ping: id === 'P-09' ? '12ms' : id === 'P-04' ? '24ms' : id === 'P-12' ? '18ms' : id === 'P-22' ? '42ms' : id === 'P-31' ? '8ms' : '56ms',
-          };
-        });
-
-        setPatrolUnits(merged);
-      }
-    } catch (error) {
-      console.error('Failed to pull telemetry:', error);
-    }
-  };
+export default function PatrolBoard() {
+  const { lastMessage, isConnected } = useWebSocket()
+  const [units, setUnits] = useState<Record<string, any>>({})
 
   useEffect(() => {
-    fetchTelemetry();
-    // Poll updates every 4 seconds to be snappy
-    const timer = setInterval(fetchTelemetry, 4000);
-    return () => clearInterval(timer);
-  }, []);
+    if (!lastMessage) return
+
+    if (lastMessage.type === 'telemetry') {
+      const data = lastMessage.data
+      setUnits(prev => ({
+        ...prev,
+        [lastMessage.unit_id]: {
+          id: lastMessage.unit_id,
+          name: `Unit ${lastMessage.unit_id.substring(0, 4).toUpperCase()}`,
+          lat: data.lat,
+          lng: data.lng,
+          battery: data.battery,
+          status: 'Active Patrol',
+          lastUpdate: new Date()
+        }
+      }))
+    }
+  }, [lastMessage])
+
+  // Simple cleanup of old units
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime()
+      setUnits(prev => {
+        const updated = { ...prev }
+        let changed = false
+        for (const [id, unit] of Object.entries(updated)) {
+          if (now - unit.lastUpdate.getTime() > 60000) { // older than 60s
+            updated[id] = { ...unit, status: 'Offline' }
+            changed = true
+          }
+        }
+        return changed ? updated : prev
+      })
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const unitList = Object.values(units)
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Patrol Unit Management</h1>
-          <p className="text-muted-foreground">Monitor and coordinate real-time deployment of tactical units.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={fetchTelemetry}>
-            <Radio className="w-4 h-4 mr-2" />
-            Refresh Telemetry
-          </Button>
-          <Button size="sm">
-            <Navigation className="w-4 h-4 mr-2" />
-            Deploy Unit
-          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Patrol & Response Fleet</h1>
+          <p className="text-muted-foreground flex items-center gap-2">
+            Live tactical deployment tracking.
+            <Badge variant={isConnected ? "success" : "destructive"}>
+              {isConnected ? "Telemetry Active" : "Telemetry Offline"}
+            </Badge>
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {patrolUnits.map((unit) => (
-          <Card key={unit.id} className="relative overflow-hidden group">
-            <div className={cn(
-              "absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-10 group-hover:scale-110 transition-transform",
-              unit.status === 'En Route' ? 'bg-yellow-500' : unit.status === 'On Site' ? 'bg-green-500' : 'bg-primary'
-            )}></div>
-            <CardHeader className="pb-2">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                     <Badge variant="outline" className="bg-secondary/50 font-mono">{unit.id}</Badge>
-                     <span className="text-xs text-muted-foreground font-medium uppercase tracking-tighter">{unit.type}</span>
-                  </div>
-                  <Badge variant={unit.status === 'En Route' ? 'warning' : unit.status === 'On Site' ? 'success' : 'secondary'}>
-                     <div className={cn(
-                       "w-1.5 h-1.5 rounded-full mr-2",
-                       unit.status === 'En Route' ? 'bg-yellow-500 animate-pulse' : unit.status === 'On Site' ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'
-                     )}></div>
-                     {unit.status}
-                  </Badge>
-               </div>
-               <CardTitle className="mt-4 flex items-center gap-2">
-                 <ShieldAlert className="w-5 h-5 text-primary" />
-                 Tactical Unit {unit.id}
-               </CardTitle>
-               <CardDescription className="flex items-center gap-2">
-                 <MapPin className="w-3.5 h-3.5" />
-                 {unit.location}
-               </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Power</span>
-                      <Battery className={cn("w-3 h-3", unit.battery < 50 ? "text-red-500" : "text-green-500")} />
-                    </div>
-                    <div className="flex items-end gap-1">
-                      <span className="text-lg font-bold">{unit.battery}</span>
-                      <span className="text-xs text-muted-foreground mb-1">%</span>
-                    </div>
-                 </div>
-                 <div className="p-3 bg-secondary/30 rounded-lg border border-border/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Latency</span>
-                      <Activity className="w-3 h-3 text-blue-500" />
-                    </div>
-                    <div className="flex items-end gap-1">
-                      <span className="text-lg font-bold">{unit.ping}</span>
-                    </div>
-                 </div>
-              </div>
-              
-              <div className="mt-4 p-3 bg-secondary/30 rounded-lg border border-border/50 flex items-center justify-between">
-                 <div className="flex items-center gap-2">
-                   <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
-                   <span className="text-xs font-medium">Core Integrity</span>
-                 </div>
-                 <Badge variant="outline" className={cn(
-                   "text-[10px] h-5",
-                   unit.health === 'Optimal' ? "text-green-500 border-green-500/20" : "text-yellow-500 border-yellow-500/20"
-                 )}>
-                   {unit.health}
-                 </Badge>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 relative h-[600px] bg-slate-900 rounded-xl overflow-hidden border border-border flex items-center justify-center">
+           <div className="absolute inset-0 opacity-20"
+             style={{
+               backgroundImage: 'linear-gradient(rgba(3,181,211,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(3,181,211,0.2) 1px, transparent 1px)',
+               backgroundSize: '40px 40px'
+             }}
+           ></div>
+           
+           <MapIcon className="w-24 h-24 text-muted-foreground/20 absolute" />
+           <p className="text-muted-foreground/40 absolute mt-32 font-bold tracking-widest uppercase">Tactical Map Placeholder</p>
 
-              <div className="flex gap-2 mt-6">
-                 <Button className="flex-1" size="sm">
-                   <Radio className="w-3.5 h-3.5 mr-2" />
-                   Comms
-                 </Button>
-                 <Button variant="outline" className="flex-1" size="sm">
-                   <Phone className="w-3.5 h-3.5 mr-2" />
-                   Call
-                 </Button>
-                 <Button variant="ghost" size="icon" className="h-9 w-9">
-                   <MoreVertical className="w-3.5 h-3.5" />
-                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+           {unitList.map((u) => (
+             <div key={u.id} className="absolute z-10 flex flex-col items-center" style={{
+               // Mocking a relative position on a 0-100 grid for demonstration if lat/lng are small diffs
+               // Real map would use leaflet or mapbox
+               left: `${(u.lng % 0.1) * 1000}%`,
+               top: `${(u.lat % 0.1) * 1000}%`
+             }}>
+               <div className="w-4 h-4 bg-primary rounded-full animate-ping absolute opacity-75"></div>
+               <div className="w-4 h-4 bg-primary border-2 border-background rounded-full relative z-10 shadow-[0_0_15px_rgba(3,181,211,0.8)]"></div>
+               <Badge className="mt-2 bg-black/80 backdrop-blur-sm border-primary/50 text-[10px] whitespace-nowrap">
+                 {u.name}
+               </Badge>
+             </div>
+           ))}
+        </div>
+
+        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+          <h3 className="font-semibold uppercase tracking-wider text-sm text-muted-foreground mb-4">Deployed Units ({unitList.length})</h3>
+          
+          {unitList.length === 0 ? (
+            <Card className="bg-secondary/20 border-dashed">
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                <Radio className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                No telemetry signals received.
+              </CardContent>
+            </Card>
+          ) : (
+            unitList.map(unit => (
+              <Card key={unit.id} className={cn(
+                "transition-all",
+                unit.status === 'Offline' ? "opacity-50" : "border-primary/30 bg-primary/5"
+              )}>
+                <CardHeader className="pb-2 p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{unit.name}</CardTitle>
+                    <Badge variant={unit.status === 'Offline' ? 'secondary' : 'success'}>{unit.status}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Navigation className="w-3 h-3" /> Location
+                      </span>
+                      <span className="font-mono">{unit.lat.toFixed(4)}, {unit.lng.toFixed(4)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Battery className="w-3 h-3" /> Power
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className={cn(
+                            "h-full rounded-full",
+                            unit.battery > 50 ? "bg-green-500" : unit.battery > 20 ? "bg-yellow-500" : "bg-red-500"
+                          )} style={{ width: `${unit.battery}%` }}></div>
+                        </div>
+                        <span className="font-mono">{unit.battery}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

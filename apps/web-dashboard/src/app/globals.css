@@ -47,6 +47,12 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-scan-line: scan-line 3s linear infinite;
+  --animate-radar-pulse: radar-pulse 2s ease-out infinite;
+  --animate-glow-ring: glow-ring 2s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.5s ease-out;
 }
 
 body {
@@ -64,5 +70,102 @@ body {
   
   .gold-gradient {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .gold-gradient:hover {
+    filter: brightness(1.15) saturate(1.05);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+    transform: translateY(-1px);
+  }
+  
+  .gold-gradient:active {
+    filter: brightness(0.9);
+    transform: translateY(1px) scale(0.97) !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+  }
+}
+
+/* Force interactive cursor on all clickable elements */
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
+input[type="range"],
+[role="button"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+button:disabled,
+a:disabled,
+select:disabled,
+input:disabled,
+[role="button"]:disabled {
+  cursor: not-allowed !important;
+}
+
+/* Enhance visual response on hover for all buttons globally */
+button:not(:disabled):hover,
+[role="button"]:not(:disabled):hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active {
+  transition: all 0.1s ease;
+}
+
+/* Keyframe Animations */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(400%);
+  }
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes glow-ring {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.3), 0 0 12px rgba(34, 197, 94, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.5), 0 0 24px rgba(34, 197, 94, 0.25);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -1,4 +1,6 @@
-import React from 'react'
+"use client"
+
+import React, { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -14,8 +16,26 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/Toast"
 
 export default function UploadsPage() {
+  const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedPriority, setSelectedPriority] = useState('High')
+  const [cameraId, setCameraId] = useState('')
+  const [sector, setSector] = useState('Sector Alpha (Central)')
+
+  const handleFileDrop = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      toast(`${files.length} file(s) added to upload queue`, 'success')
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
@@ -25,8 +45,19 @@ export default function UploadsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-dashed border-2 bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer group">
+          <Card
+            className="border-dashed border-2 bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer group"
+            onClick={handleFileDrop}
+          >
             <CardContent className="flex flex-col items-center justify-center py-12">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".mp4,.avi,.mkv,.jpg,.jpeg,.png,.webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Upload className="w-8 h-8 text-primary" />
               </div>
@@ -95,11 +126,21 @@ export default function UploadsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Source Camera ID</label>
-                <input type="text" placeholder="e.g. CAM-XXX" className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                <input
+                  type="text"
+                  placeholder="e.g. CAM-XXX"
+                  value={cameraId}
+                  onChange={(e) => setCameraId(e.target.value)}
+                  className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mission Sector</label>
-                <select className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                <select
+                  value={sector}
+                  onChange={(e) => setSector(e.target.value)}
+                  className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                >
                   <option>Sector Alpha (Central)</option>
                   <option>Sector Beta (North)</option>
                   <option>Sector Gamma (South)</option>
@@ -109,16 +150,20 @@ export default function UploadsPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">AI Priority</label>
                 <div className="flex gap-2">
                   {['Low', 'Normal', 'High', 'URGENT'].map((p) => (
-                    <button key={p} className={cn(
-                      "flex-1 py-1 text-[10px] font-bold rounded border border-border transition-all",
-                      p === 'High' ? "bg-primary text-primary-foreground border-primary" : "hover:bg-secondary"
-                    )}>
+                    <button
+                      key={p}
+                      onClick={() => setSelectedPriority(p)}
+                      className={cn(
+                        "flex-1 py-1 text-[10px] font-bold rounded border border-border transition-all cursor-pointer",
+                        selectedPriority === p ? "bg-primary text-primary-foreground border-primary" : "hover:bg-secondary"
+                      )}
+                    >
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
-              <Button className="w-full mt-4">
+              <Button className="w-full mt-4" onClick={() => toast('AI scan queued for processing...', 'success')}>
                 <Play className="w-4 h-4 mr-2" />
                 Initialize AI Scan
               </Button>
@@ -130,7 +175,9 @@ export default function UploadsPage() {
                <AlertCircle className="w-8 h-8 text-primary mx-auto mb-3" />
                <h4 className="font-semibold text-sm">Hardware Acceleration</h4>
                <p className="text-xs text-muted-foreground mt-1">Local GPU clusters are available for ultra-fast facial extraction.</p>
-               <Button variant="outline" size="sm" className="mt-4 w-full">Manage Clusters</Button>
+               <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => toast('Cluster management coming soon', 'info')}>
+                 Manage Clusters
+               </Button>
             </CardContent>
           </Card>
         </div>

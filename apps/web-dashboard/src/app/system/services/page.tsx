@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
@@ -13,6 +15,7 @@ import {
   Layers
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/Toast"
 
 const services = [
   { name: 'Facial Extraction Engine', status: 'Operational', uptime: '99.99%', latency: '42ms', load: '12%', icon: Cpu },
@@ -24,6 +27,8 @@ const services = [
 ]
 
 export default function ServicesPage() {
+  const { toast } = useToast()
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -32,11 +37,11 @@ export default function ServicesPage() {
           <p className="text-muted-foreground">Monitor the status and performance of backend intelligence modules.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast('Cluster restart initiated — estimated recovery: 45s', 'warning')}>
             <RefreshCcw className="w-4 h-4 mr-2" />
             Restart Cluster
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => toast('Full metrics dashboard coming soon', 'info')}>
             <BarChart3 className="w-4 h-4 mr-2" />
             Full Metrics
           </Button>
@@ -104,7 +109,7 @@ export default function ServicesPage() {
          </CardHeader>
          <CardContent>
             <div className="font-mono text-xs text-muted-foreground space-y-1">
-               <p>[15:42:01] Service 'Facial Extraction' received 1.2k new requests.</p>
+               <p>[15:42:01] Service &apos;Facial Extraction&apos; received 1.2k new requests.</p>
                <p>[15:41:55] Neural Cluster A latency spiked to 450ms. Rerouting traffic...</p>
                <p>[15:41:30] Backup Matcher synced successfully with Registry DB.</p>
                <p className="text-primary animate-pulse">[15:42:15] Listening for incoming mission data...</p>

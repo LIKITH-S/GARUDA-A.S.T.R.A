@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
@@ -12,6 +14,7 @@ import {
   Plus
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/Toast"
 
 const columns = [
   {
@@ -41,6 +44,8 @@ const columns = [
 ]
 
 export default function StatusPage() {
+  const { toast } = useToast()
+
   return (
     <div className="space-y-8 h-full flex flex-col">
       <div className="flex items-center justify-between">
@@ -49,10 +54,10 @@ export default function StatusPage() {
           <p className="text-muted-foreground">Tactical Kanban view of unit deployments and operational states.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast('Operational map coming soon', 'info')}>
             Operational Map
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => toast('Incident creation form coming soon', 'info')}>
             <Plus className="w-4 h-4 mr-2" />
             Create Incident
           </Button>
@@ -67,7 +72,7 @@ export default function StatusPage() {
                 <h3 className="font-bold text-sm uppercase tracking-wider">{column.title}</h3>
                 <Badge variant="secondary" className="bg-secondary text-[10px] h-5">{column.units.length}</Badge>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast(`${column.title} options coming soon`, 'info')}>
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </div>
@@ -116,7 +121,11 @@ export default function StatusPage() {
                 </Card>
               ))}
               
-              <Button variant="ghost" className="w-full border border-dashed border-border/50 h-12 text-muted-foreground hover:text-primary hover:border-primary/50 text-xs">
+              <Button
+                variant="ghost"
+                className="w-full border border-dashed border-border/50 h-12 text-muted-foreground hover:text-primary hover:border-primary/50 text-xs"
+                onClick={() => toast(`Assign unit to ${column.title} coming soon`, 'info')}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Assign Unit
               </Button>

@@ -15,11 +15,26 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/Toast"
 
 export default function SettingsPage() {
+  const { toast } = useToast()
   const [threshold, setThreshold] = useState(85)
   const [notifications, setNotifications] = useState(true)
   const [faceExtraction, setFaceExtraction] = useState(true)
+  const [visualStrobe, setVisualStrobe] = useState(false)
+
+  const handleSave = () => {
+    toast('Settings saved successfully', 'success')
+  }
+
+  const handleReset = () => {
+    setThreshold(85)
+    setNotifications(true)
+    setFaceExtraction(true)
+    setVisualStrobe(false)
+    toast('All settings reset to defaults', 'info')
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
@@ -29,11 +44,11 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">Configure AI thresholds, security protocols, and platform preferences.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset Defaults
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleSave}>
             <Save className="w-4 h-4 mr-2" />
             Save Changes
           </Button>
@@ -84,9 +99,12 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Automatically isolate and crop facial images from live streams.</p>
                 </div>
                 <button 
-                  onClick={() => setFaceExtraction(!faceExtraction)}
+                  onClick={() => {
+                    setFaceExtraction(!faceExtraction)
+                    toast(faceExtraction ? 'Face extraction disabled' : 'Face extraction enabled', faceExtraction ? 'warning' : 'success')
+                  }}
                   className={cn(
-                    "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                    "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer",
                     faceExtraction ? "bg-primary" : "bg-secondary"
                   )}
                 >
@@ -120,7 +138,9 @@ export default function SettingsPage() {
                     <span className="text-sm font-semibold">Encryption: AES-256-GCM</span>
                   </div>
                   <p className="text-xs text-muted-foreground">All surveillance data is encrypted at rest and in transit.</p>
-                  <Button variant="outline" size="sm" className="w-full text-xs">Rotate Mission Keys</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => toast('Key rotation initiated — new keys will propagate in 30s', 'warning')}>
+                    Rotate Mission Keys
+                  </Button>
                </div>
                <div className="p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
                   <div className="flex items-center gap-2">
@@ -128,7 +148,9 @@ export default function SettingsPage() {
                     <span className="text-sm font-semibold">Global Feed Sync</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Sync with international intelligence databases (Interpol/UN).</p>
-                  <Button variant="outline" size="sm" className="w-full text-xs">Manage Integrations</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => toast('Integration settings coming soon', 'info')}>
+                    Manage Integrations
+                  </Button>
                </div>
              </div>
           </CardContent>
@@ -154,9 +176,12 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Play audible alarm when a high-confidence match is detected.</p>
                 </div>
                 <button 
-                  onClick={() => setNotifications(!notifications)}
+                  onClick={() => {
+                    setNotifications(!notifications)
+                    toast(notifications ? 'Sound alerts disabled' : 'Sound alerts enabled', notifications ? 'warning' : 'success')
+                  }}
                   className={cn(
-                    "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                    "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer",
                     notifications ? "bg-primary" : "bg-secondary"
                   )}
                 >
@@ -171,8 +196,20 @@ export default function SettingsPage() {
                   <label className="text-sm font-medium">Visual Strobe on Emergency</label>
                   <p className="text-xs text-muted-foreground">Flash the UI background red when a critical incident is reported.</p>
                 </div>
-                <button className="w-12 h-6 rounded-full p-1 bg-secondary transition-colors duration-200">
-                  <div className="w-4 h-4 rounded-full bg-white" />
+                <button
+                  onClick={() => {
+                    setVisualStrobe(!visualStrobe)
+                    toast(visualStrobe ? 'Visual strobe disabled' : 'Visual strobe enabled', visualStrobe ? 'warning' : 'success')
+                  }}
+                  className={cn(
+                    "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer",
+                    visualStrobe ? "bg-primary" : "bg-secondary"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded-full bg-white transition-transform duration-200",
+                    visualStrobe ? "translate-x-6" : "translate-x-0"
+                  )} />
                 </button>
              </div>
           </CardContent>
