@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 from services.backend.core.config import settings
 from services.backend.core.security import create_access_token, verify_password
@@ -25,7 +26,7 @@ async def login_access_token(
     result = await db.execute(
         select(User)
         .options(joinedload(User.role))
-        .where(User.email == form_data.username)
+        .where(func.lower(User.email) == form_data.username.strip().lower())
     )
     user = result.scalar_one_or_none()
         

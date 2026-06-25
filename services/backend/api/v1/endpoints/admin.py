@@ -50,28 +50,19 @@ async def create_user(
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(require_admin)
 ):
-    # Check if email exists
-    result = await db.execute(select(User).where(User.email == user_in.email))
+    # Check if user already exists (case-insensitive)
+    result = await db.execute(select(User).where(func.lower(User.email) == user_in.email.strip().lower()))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
         
-    # Map frontend role names to DB role names
-    role_mapping = {
-        "admin": "admin",
-        "dispatcher": "control room operator",
-        "officer": "officer",
-        "patrol": "patrol officer"
-    }
-    mapped_role = role_mapping.get(user_in.role_name.lower(), user_in.role_name.lower())
-    
     # Get role
-    role_result = await db.execute(select(Role).where(func.lower(Role.name) == mapped_role))
+    role_result = await db.execute(select(Role).where(func.lower(Role.name) == user_in.role_name.lower()))
     role = role_result.scalar_one_or_none()
     if not role:
-        raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist (mapped to '{mapped_role}')")
+        raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist")
         
     db_user = User(
-        email=user_in.email,
+        email=user_in.email.strip().lower(),
         full_name=user_in.full_name,
         hashed_password=get_password_hash(user_in.password),
         role_id=role.id
@@ -112,18 +103,10 @@ async def update_user(
     role_name_out = db_user.role.name if db_user.role else "unknown"
     
     if user_in.role_name is not None:
-        role_mapping = {
-            "admin": "admin",
-            "dispatcher": "control room operator",
-            "officer": "officer",
-            "patrol": "patrol officer"
-        }
-        mapped_role = role_mapping.get(user_in.role_name.lower(), user_in.role_name.lower())
-        
-        role_result = await db.execute(select(Role).where(func.lower(Role.name) == mapped_role))
+        role_result = await db.execute(select(Role).where(func.lower(Role.name) == user_in.role_name.lower()))
         role = role_result.scalar_one_or_none()
         if not role:
-            raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist (mapped to '{mapped_role}')")
+            raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist")
         db_user.role_id = role.id
         role_name_out = role.name
         
