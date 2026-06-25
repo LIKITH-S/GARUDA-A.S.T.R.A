@@ -39,6 +39,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       const SecureStore = require('expo-secure-store');
       
       const response = await loginApi(unitId, key);
+      
       await SecureStore.setItemAsync('astra_token', response.access_token);
       await SecureStore.setItemAsync('astra_role', response.role || 'patrol');
       await SecureStore.setItemAsync('astra_user_id', response.user_id || unitId);
@@ -57,12 +58,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           full_name: response.full_name
         });
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
       setStatusText('ACCESS DENIED');
+      
       setTimeout(() => {
         setStatusText('AUTHORIZE ACCESS');
-      }, 2000);
+      }, 3000);
     }
   };
 
