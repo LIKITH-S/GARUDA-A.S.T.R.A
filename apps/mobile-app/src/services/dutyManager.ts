@@ -62,28 +62,25 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
 `);
 
   // 1. Connect WebSocket
-  SocketManager.connect(config.wsUrl);
+  const SecureStore = require('expo-secure-store');
+  const token = await SecureStore.getItemAsync('astra_token');
+  const wsUrlWithToken = token ? `${config.wsUrl}?token=${token}` : config.wsUrl;
+  SocketManager.connect(wsUrlWithToken);
 
   // 2. Wire up incoming alert messages from WebSocket → alertService
   messageUnsubscribe = SocketManager.onMessage((data: any) => {
-    // Handle alert messages from backend
-    if (data.type === 'alert' && data.payload) {
+    // Handle alerts from backend
+    if (data.event === 'possible_match_detected' || data.type === 'assignment') {
+      const isAssignment = data.type === 'assignment';
+      const alertData = isAssignment ? data : data.data;
+      
       const alertPayload: BackendAlertPayload = {
-        ...data.payload,
-        assignedOfficer: data.payload.assignedOfficer || {
-          name: config.officerName,
-          unitId: config.officerId,
-          rank: config.officerRank,
-        },
-      };
-      injectAlert(alertPayload);
-    }
-
-    // Handle direct alert payloads (no wrapper type)
-    if (data.title && !data.type) {
-      const alertPayload: BackendAlertPayload = {
-        ...data,
-        assignedOfficer: data.assignedOfficer || {
+        id: alertData.alert_id || data.alert_id || String(Date.now()),
+        title: isAssignment ? 'URGENT ASSIGNMENT' : 'POSSIBLE MATCH DETECTED',
+        description: alertData.message || `Match Confidence: ${alertData.confidence}%`,
+        severity: isAssignment ? 'CRITICAL' : 'HIGH',
+        location: alertData.lat ? { lat: alertData.lat, lng: alertData.lng } : undefined,
+        assignedOfficer: {
           name: config.officerName,
           unitId: config.officerId,
           rank: config.officerRank,

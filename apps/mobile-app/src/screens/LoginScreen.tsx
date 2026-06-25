@@ -29,11 +29,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [statusText, setStatusText] = useState('AUTHORIZE ACCESS');
   const [isGranted, setIsGranted] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setIsLoading(true);
     setStatusText('AUTHORIZING...');
     
-    setTimeout(() => {
+    try {
+      const { loginApi } = require('../services/api');
+      const SecureStore = require('expo-secure-store');
+      
+      const response = await loginApi(unitId, key);
+      await SecureStore.setItemAsync('astra_token', response.access_token);
+      await SecureStore.setItemAsync('astra_role', response.role || 'patrol');
+      await SecureStore.setItemAsync('astra_user_id', response.user_id || unitId);
+      
       setIsGranted(true);
       setStatusText('ACCESS GRANTED');
       
@@ -43,7 +51,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         setStatusText('AUTHORIZE ACCESS');
         onLoginSuccess();
       }, 1000);
-    }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      setStatusText('ACCESS DENIED');
+      setTimeout(() => {
+        setStatusText('AUTHORIZE ACCESS');
+      }, 2000);
+    }
   };
 
   return (

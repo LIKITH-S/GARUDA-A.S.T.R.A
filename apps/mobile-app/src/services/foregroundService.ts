@@ -86,7 +86,11 @@ async function operationalLoop(taskDataArguments?: { delay: number; officerId: s
       // 5. Send telemetry via WebSocket
       SocketManager.send({
         type: 'telemetry',
-        payload: telemetry,
+        payload: {
+          ...telemetry,
+          lat: gpsData ? gpsData.lat : null,
+          lng: gpsData ? gpsData.lng : null,
+        },
       });
 
       // ==========================================
@@ -198,6 +202,8 @@ export async function sendImmediateTelemetry(
       officer_id: officerId,
       officer_name: officerName,
       gps: gpsData,
+      lat: gpsData ? gpsData.lat : null,
+      lng: gpsData ? gpsData.lng : null,
       battery: batteryLevel,
       charging: batteryCharging,
       status: customStatus || 'on_duty',

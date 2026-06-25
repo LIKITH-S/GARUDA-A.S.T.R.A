@@ -44,9 +44,7 @@ import { TacticalAlertPopup } from './src/components/TacticalAlertPopup';
 
 type ScreenType = 'alerts' | 'details' | 'cases' | 'logs' | 'map' | 'profile';
 
-// WebSocket URL — change this when backend is ready
-// For local testing with the FastAPI mock server: 'ws://YOUR_PC_IP:8765/ws'
-const WS_URL = 'ws://161.118.169.220:8765/ws';
+const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/ws/connect';
 
 export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -205,10 +203,21 @@ export default function App() {
     }
   };
 
-  const handleUpdateAlertStatus = (alertId: string, status: AlertItem['status']) => {
+  const handleUpdateAlertStatus = async (alertId: string, status: AlertItem['status']) => {
     // Find the alert to get previous status for audit
     const targetAlert = alerts.find((a) => a.id === alertId);
     const previousStatus = targetAlert?.status || 'ALERT';
+
+    try {
+      const { verifyAlertApi, rejectAlertApi } = require('./src/services/api');
+      if (status === 'FALSE ALARM') {
+        await rejectAlertApi(alertId);
+      } else if (status === 'RESOLVED' || status === 'APPREHENDED') {
+        await verifyAlertApi(alertId);
+      }
+    } catch (e) {
+      console.error('Failed to sync alert status with backend', e);
+    }
 
     setAlerts((prevAlerts) =>
       prevAlerts.map((a) => (a.id === alertId ? { ...a, status } : a))
