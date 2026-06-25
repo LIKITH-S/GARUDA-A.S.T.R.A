@@ -107,6 +107,21 @@ export function Sidebar() {
                 </li>
               )
             })}
+            
+            {role === 'admin' && (
+              <li className="mt-4 pt-4 border-t border-border/40">
+                <Link
+                  href="/admin/users"
+                  className="flex items-center justify-between px-4 py-2 text-sm font-bold rounded-md transition-all text-red-500 hover:bg-red-500/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src="/GarudASTRAtransparent.png" alt="Logo" className="w-5 h-5 object-contain" />
+                    Admin Portal
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       </nav>

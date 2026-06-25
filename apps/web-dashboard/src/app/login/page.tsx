@@ -34,11 +34,19 @@ export default function LoginPage() {
         body: formData.toString()
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Invalid credentials')
+        setError(data.detail || 'Login failed')
+        return
       }
 
-      const data = await response.json()
+      // Block Patrol Units from logging into Web Dashboard
+      if (data.role && (data.role.toLowerCase() === 'patrol officer' || data.role.toLowerCase() === 'patrol')) {
+        setError('Patrol Units cannot access the Web Dashboard. Please use the Mobile App.')
+        return
+      }
+
       login(data.access_token, data.role, data.user_id, data.full_name)
       toast('Authorization granted.', 'success')
       
