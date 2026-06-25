@@ -58,7 +58,7 @@ export default function LiveMap({ units, focusedLocation }: LiveMapProps) {
                     <span className="font-semibold">Status:</span> {unit.status}
                   </div>
                   <div className="text-xs">
-                    <span className="font-semibold">Battery:</span> {unit.battery}%
+                    <span className="font-semibold">Battery:</span> {unit.battery}% {unit.charging ? '⚡' : ''}
                   </div>
                   <div className="text-xs">
                     <span className="font-semibold">Last Update:</span> {unit.lastUpdate.toLocaleTimeString()}

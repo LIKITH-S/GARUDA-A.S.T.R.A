@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
-import { ShieldAlert, Crosshair, Map as MapIcon, Battery, Navigation, Radio } from 'lucide-react'
+import { ShieldAlert, Crosshair, Map as MapIcon, Battery, Navigation, Radio, Zap } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useWebSocket } from '@/lib/websocket'
 
@@ -15,6 +15,7 @@ export interface PatrolUnit {
   lat: number | null;
   lng: number | null;
   battery: number;
+  charging: boolean;
   status: string;
   lastUpdate: Date;
 }
@@ -54,6 +55,7 @@ export default function PatrolBoard() {
             lat: data.lat,
             lng: data.lng,
             battery: data.battery ?? 0,
+            charging: data.charging ?? false,
             status: data.status === 'on_duty' ? 'Active Patrol' : data.status || 'Active Patrol',
             lastUpdate: new Date()
           }
@@ -152,10 +154,13 @@ export default function PatrolBoard() {
                         <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
                           <div className={cn(
                             "h-full rounded-full",
-                            unit.battery > 50 ? "bg-green-500" : unit.battery > 20 ? "bg-yellow-500" : "bg-red-500"
+                            unit.charging ? "bg-green-400 animate-pulse" : unit.battery > 50 ? "bg-green-500" : unit.battery > 20 ? "bg-yellow-500" : "bg-red-500"
                           )} style={{ width: `${unit.battery}%` }}></div>
                         </div>
-                        <span className="font-mono">{unit.battery}%</span>
+                        <span className="font-mono flex items-center gap-1">
+                          {unit.battery}%
+                          {unit.charging && <Zap className="w-3 h-3 text-green-400 fill-green-400" />}
+                        </span>
                       </div>
                     </div>
                   </div>
