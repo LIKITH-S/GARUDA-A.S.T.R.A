@@ -13,6 +13,7 @@
 
 import * as SocketManager from './socketManager';
 import * as ForegroundService from './foregroundService';
+import * as SecureStore from 'expo-secure-store';
 import { injectAlert, BackendAlertPayload } from '../utils/alertService';
 
 // ---------- Types ----------
@@ -62,7 +63,6 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
 `);
 
   // 1. Connect WebSocket
-  const SecureStore = require('expo-secure-store');
   const token = await SecureStore.getItemAsync('astra_token');
   const wsUrlWithToken = token ? `${config.wsUrl}?token=${token}` : config.wsUrl;
   SocketManager.connect(wsUrlWithToken);
@@ -109,7 +109,8 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
     return false;
   }
 
-  // 5. Send immediate DUTY_ON telemetry
+  // 5. Send immediate DUTY_ON telemetry after ensuring connection
+  await SocketManager.waitForConnection(3000);
   ForegroundService.sendImmediateTelemetry(
     'DUTY_ON',
     config.officerId,
@@ -153,8 +154,10 @@ export async function goOffDuty(): Promise<void> {
   // 2. Stop foreground service
   await ForegroundService.stopService();
 
-  // 3. Disconnect WebSocket
-  SocketManager.disconnect();
+  // 3. Disconnect WebSocket (delay to ensure DUTY_OFF packet goes out)
+  setTimeout(() => {
+    SocketManager.disconnect();
+  }, 500);
 
   // 4. Clean up event handlers
   if (messageUnsubscribe) {

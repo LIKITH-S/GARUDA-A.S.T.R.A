@@ -29,7 +29,9 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "WAKE_LOCK",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "package": "com.anonymous.app"
     },
@@ -37,7 +39,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio"
-    ]
+      "expo-audio",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "47f78206-68cb-42c1-88a0-ea25ab713a25"
+      }
+    }
   }
 }

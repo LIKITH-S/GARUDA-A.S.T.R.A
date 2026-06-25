@@ -10,7 +10,7 @@
 
 import BackgroundService from 'react-native-background-actions';
 import * as SocketManager from './socketManager';
-import { getBestEffortPosition } from './gpsService';
+import { getBestEffortPosition, startGpsTracking, stopGpsTracking } from './gpsService';
 import { getBatteryInfo } from './batteryService';
 import { ensureCriticalPermissions } from './permissionService';
 
@@ -38,6 +38,7 @@ export interface TelemetryPayload {
 // ---------- Internal State ----------
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+let activeRunId = 0;
 
 // ---------- Background Loop ----------
 
@@ -45,10 +46,15 @@ async function operationalLoop(taskDataArguments?: { delay: number; officerId: s
   const delay = taskDataArguments?.delay || 15000;
   const officerId = taskDataArguments?.officerId || 'UNKNOWN';
   const officerName = taskDataArguments?.officerName || 'UNKNOWN';
+  
+  const myRunId = activeRunId;
 
-  console.log(`🟢 [FOREGROUND SERVICE] Started for Officer: ${officerName}`);
+  console.log(`🟢 [FOREGROUND SERVICE] Started for Officer: ${officerName} (Run ID: ${myRunId})`);
 
-  while (BackgroundService.isRunning()) {
+  // Rely purely on JS-controlled activeRunId for loop lifecycle.
+  // Using BackgroundService.isRunning() here causes a native race condition
+  // if start() and stop() are called rapidly.
+  while (activeRunId === myRunId) {
     try {
       // 1. Ensure WebSocket is alive
       SocketManager.ensureConnected();
@@ -93,39 +99,30 @@ async function operationalLoop(taskDataArguments?: { delay: number; officerId: s
         },
       });
 
-      // ==========================================
-      // CRITICAL FIX: STEP 6 REMOVED ENTIRELY
-      // We no longer call BackgroundService.updateNotification() here.
-      // This prevents the OS from stripping out the ongoing/sticky nature.
-      // ==========================================
-
       // 7. Tactical logs
       console.log(`📡 Telemetry streamed at ${new Date().toLocaleTimeString()} • GPS: ${gpsData ? 'OK' : 'FAIL'}`);
     } catch (err) {
       console.error('[FOREGROUND SERVICE] Unexpected loop error:', err);
     }
 
+    if (activeRunId !== myRunId) break;
     await sleep(delay);
   }
 
-  console.log('🛑 [FOREGROUND SERVICE] Loop exited.');
+  console.log(`🛑 [FOREGROUND SERVICE] Loop exited (Run ID: ${myRunId}).`);
 }
 
 // ---------- Public API ----------
 
 export async function startService(config: ServiceConfig): Promise<boolean> {
-  if (BackgroundService.isRunning()) {
-    console.log('ℹ️ [FOREGROUND SERVICE] Already running.');
-    return true;
-  }
-
   const permissionsOk = await ensureCriticalPermissions();
   if (!permissionsOk) {
     console.warn('⚠️ [FOREGROUND SERVICE] Permissions missing.');
     return false;
   }
 
-  const delayMs = config.delayMs || 15000;
+  const delayMs = config.delayMs || 5000;
+  activeRunId++; // Invalidate any previous zombie loops
 
   // The static configuration applied here locks the notification layout natively
   const options = {
@@ -150,6 +147,7 @@ export async function startService(config: ServiceConfig): Promise<boolean> {
   };
 
   try {
+    await startGpsTracking();
     await BackgroundService.start(operationalLoop, options);
     console.log('✅ [FOREGROUND SERVICE] Started successfully.');
     return true;
@@ -160,11 +158,11 @@ export async function startService(config: ServiceConfig): Promise<boolean> {
 }
 
 export async function stopService(): Promise<void> {
+  activeRunId++; // Immediately terminate the JS loop
   try {
-    if (BackgroundService.isRunning()) {
-      await BackgroundService.stop();
-      console.log('🛑 [FOREGROUND SERVICE] Stopped.');
-    }
+    stopGpsTracking();
+    await BackgroundService.stop();
+    console.log('🛑 [FOREGROUND SERVICE] Stopped natively.');
   } catch (error) {
     console.error('❌ [FOREGROUND SERVICE] Failed to stop:', error);
   }
@@ -187,11 +185,22 @@ export async function sendImmediateTelemetry(
   let batteryCharging = false;
 
   try {
-    const gps = await getBestEffortPosition();
-    gpsData = { lat: gps.latitude, lng: gps.longitude };
-    const battery = await getBatteryInfo();
-    batteryLevel = battery.level;
-    batteryCharging = battery.charging;
+    // We race the GPS and Battery fetches against a 500ms timeout so immediate telemetry
+    // is truly "immediate" on the dashboard. The background loop will update accurate GPS later.
+    const fetchData = async () => {
+      const gps = await getBestEffortPosition();
+      const battery = await getBatteryInfo();
+      return { gps, battery };
+    };
+
+    const timeoutPromise = new Promise<null>(resolve => setTimeout(() => resolve(null), 500));
+    const result = await Promise.race([fetchData(), timeoutPromise]);
+
+    if (result) {
+      gpsData = { lat: result.gps.latitude, lng: result.gps.longitude };
+      batteryLevel = result.battery.level;
+      batteryCharging = result.battery.charging;
+    }
   } catch {
     // Fail silently
   }

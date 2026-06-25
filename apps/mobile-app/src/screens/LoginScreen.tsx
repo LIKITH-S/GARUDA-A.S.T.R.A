@@ -18,12 +18,13 @@ import ScanLine from '../components/ScanLine';
 import PulseIndicator from '../components/PulseIndicator';
 
 interface LoginScreenProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (data: { unitId: string; role: string; email?: string; full_name?: string }) => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [unitId, setUnitId] = useState('ALPHA-9-042');
-  const [key, setKey] = useState('••••••••••••');
+  const [unitId, setUnitId] = useState('officer1@astra.gov');
+  const [key, setKey] = useState('Password123!');
+  const [showPassword, setShowPassword] = useState(false);
   const [isPersist, setIsPersist] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('AUTHORIZE ACCESS');
@@ -49,7 +50,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         setIsLoading(false);
         setIsGranted(false);
         setStatusText('AUTHORIZE ACCESS');
-        onLoginSuccess();
+        onLoginSuccess({ 
+          unitId: response.user_id || unitId, 
+          role: response.role || 'patrol',
+          email: unitId,
+          full_name: response.full_name
+        });
       }, 1000);
     } catch (error) {
       setIsLoading(false);
@@ -97,16 +103,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* Form */}
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>PATROL UNIT ID</Text>
+              <Text style={styles.inputLabel}>OFFICER EMAIL</Text>
               <View style={styles.inputContainer}>
                 <MaterialIcons name="badge" size={20} color={COLORS.outline} style={{ marginRight: 10 }} />
                 <TextInput
                   value={unitId}
                   onChangeText={setUnitId}
                   style={styles.input}
-                  placeholder="ALPHA-9-042"
+                  placeholder="officer1@astra.gov"
                   placeholderTextColor={COLORS.outline}
                   keyboardAppearance="dark"
+                  autoCapitalize="none"
                 />
               </View>
             </View>
@@ -119,11 +126,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   value={key}
                   onChangeText={setKey}
                   style={styles.input}
-                  placeholder="••••••••••••"
+                  placeholder="Password123!"
                   placeholderTextColor={COLORS.outline}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   keyboardAppearance="dark"
                 />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                  <MaterialIcons name={showPassword ? "visibility" : "visibility-off"} size={20} color={COLORS.outline} />
+                </TouchableOpacity>
               </View>
             </View>
 

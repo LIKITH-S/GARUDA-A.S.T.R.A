@@ -259,6 +259,32 @@ export function isConnected(): boolean {
 }
 
 /**
+ * Wait for connection to be established
+ */
+export async function waitForConnection(timeoutMs: number = 5000): Promise<boolean> {
+  if (isConnected()) return true;
+  
+  return new Promise((resolve) => {
+    let timeout: NodeJS.Timeout;
+    
+    const handler = (state: boolean) => {
+      if (state) {
+        clearTimeout(timeout);
+        connectionHandlers.delete(handler);
+        resolve(true);
+      }
+    };
+    
+    connectionHandlers.add(handler);
+    
+    timeout = setTimeout(() => {
+      connectionHandlers.delete(handler);
+      resolve(isConnected());
+    }, timeoutMs);
+  });
+}
+
+/**
  * Send data to the WebSocket server (e.g., telemetry).
  * Silently drops if not connected.
  */
