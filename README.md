@@ -56,7 +56,20 @@ With the virtual environment activated, install the required packages.
    pip install -r services\requirements.txt
    ```
    
-This will install all necessary libraries, including FastAPI, Uvicorn, OpenCV, DeepFace, and SQLAlchemy.
+This will install all necessary libraries, including FastAPI, Uvicorn, OpenCV, DeepFace, and SQLAlchemy. *(If you also want to run the AI processing module, you will need to create a separate virtual environment inside `services/ai` and run `pip install -r services\ai\requirements.txt` there, which installs DeepFace, OpenCV, SciPy, and TF-Keras.)*
+
+---
+
+## 🚀 Test Credentials & Seeding
+
+We have created a script to seed test users across all system roles (Admin, Dispatcher, Officer). 
+You can find the login details for these users in [TEST_CREDENTIALS.md](./TEST_CREDENTIALS.md).
+
+To run the seed script again manually (from the root folder):
+```powershell
+$env:PYTHONPATH="."
+.\services\venv\Scripts\python database\scripts\seed_users.py
+```
 
 ---
 
