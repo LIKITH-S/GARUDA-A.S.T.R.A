@@ -78,9 +78,9 @@ async def ingest_ai_event(
     payload = {
         "event": "possible_match_detected",
         "data": {
-            "alert_id": alert.id,
-            "missing_person_id": missing_person_id,
-            "camera_id": camera_id,
+            "alert_id": str(alert.id),
+            "missing_person_id": str(missing_person_id),
+            "camera_id": str(camera_id),
             "confidence": confidence,
             "lat": location_lat,
             "lng": location_lng
@@ -162,9 +162,9 @@ async def test_alert(db: AsyncSession = Depends(deps.get_db)):
     payload = {
         "event": "possible_match_detected",
         "data": {
-            "alert_id": alert.id,
-            "missing_person_id": person_id,
-            "camera_id": camera_id,
+            "alert_id": str(alert.id),
+            "missing_person_id": str(person_id),
+            "camera_id": str(camera_id),
             "confidence": confidence,
             "lat": location_lat,
             "lng": location_lng

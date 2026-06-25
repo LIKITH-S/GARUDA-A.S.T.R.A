@@ -21,8 +21,17 @@ async def read_alerts(
     skip: int = 0,
     limit: int = 100,
 ) -> List[Alert]:
-    """Retrieve all alerts."""
-    result = await db.execute(select(Alert).offset(skip).limit(limit))
+    """Retrieve all alerts with detection event and person details."""
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .order_by(Alert.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 @router.post("/{alert_id}/verify", response_model=AlertRead)
