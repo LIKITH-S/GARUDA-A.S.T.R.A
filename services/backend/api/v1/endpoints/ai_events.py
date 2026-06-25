@@ -4,7 +4,8 @@ from sqlalchemy.future import select
 from services.backend.api import deps
 from database.models.ai_events import DetectionEvent, Alert
 from database.models.registry import MissingPerson
-from services.ai.core.recognition import process_face
+from services.ai.core.embedding_service import generate_embedding
+from services.ai.core.ranking_service import get_best_match
 from services.backend.api.v1.endpoints.websockets import manager
 import base64
 import uuid
@@ -41,14 +42,14 @@ async def ingest_ai_event(
         database.append({"id": p.id, "embedding": p.face_embedding})
         
     # Process with AI module
-    match_result = await process_face(image_bytes, database)
-    
-    if not match_result or not match_result.get("match_found"):
-        return {"status": "success", "message": "No match found"}
+    target_embedding = generate_embedding(image_bytes)
+    if not target_embedding:
+        return {"status": "success", "message": "No face embedding could be generated from the image."}
         
-    # If a match is found, create the DetectionEvent
-    missing_person_id = match_result.get("missing_person_id")
-    confidence = match_result.get("confidence")
+    match_found, missing_person_id, confidence = get_best_match(target_embedding, database)
+    
+    if not match_found:
+        return {"status": "success", "message": "No match found"}
     
     event = DetectionEvent(
         id=str(uuid.uuid4()),

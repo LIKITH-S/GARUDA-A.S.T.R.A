@@ -61,7 +61,7 @@ async def read_missing_persons(
     return result.scalars().all()
 
 from fastapi import UploadFile, File
-from services.ai.core.recognition import extract_embeddings
+from services.ai.core.embedding_service import generate_embedding
 import json
 
 @router.post("/{person_id}/image")
@@ -84,7 +84,7 @@ async def upload_missing_person_image(
         raise HTTPException(status_code=404, detail="Missing person not found")
         
     image_bytes = await image.read()
-    embedding = extract_embeddings(image_bytes)
+    embedding = generate_embedding(image_bytes)
     
     if not embedding:
         raise HTTPException(status_code=400, detail="Could not detect a clear face in the image")
