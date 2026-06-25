@@ -60,7 +60,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       }, 1000);
     } catch (error: any) {
       setIsLoading(false);
-      setStatusText('ACCESS DENIED');
+      const errorMessage = error.message || 'ACCESS DENIED';
+      setStatusText(errorMessage.toUpperCase());
       
       setTimeout(() => {
         setStatusText('AUTHORIZE ACCESS');

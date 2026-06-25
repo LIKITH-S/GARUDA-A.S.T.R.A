@@ -12,7 +12,7 @@ async function getHeaders() {
 
 export async function loginApi(username: string, password: string) {
   const formData = new URLSearchParams();
-  formData.append('username', username);
+  formData.append('username', username.trim().toLowerCase());
   formData.append('password', password);
 
   const response = await fetch(`${API_URL}/auth/login`, {
@@ -24,7 +24,16 @@ export async function loginApi(username: string, password: string) {
   });
 
   if (!response.ok) {
-    throw new Error('Invalid credentials');
+    let errorMsg = 'Invalid credentials';
+    try {
+      const errData = await response.json();
+      if (errData.error && errData.error.message) {
+        errorMsg = errData.error.message;
+      } else if (errData.detail) {
+        errorMsg = errData.detail;
+      }
+    } catch(e) {}
+    throw new Error(errorMsg);
   }
 
   return response.json();
