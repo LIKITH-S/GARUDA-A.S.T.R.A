@@ -63,7 +63,7 @@ export default function AlertsPage() {
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Critical' } : a))
       toast(`Alert ${id.substring(0, 8)} confirmed`, 'success')
     } catch (err) {
-      toast('Failed to confirm alert', 'destructive')
+      toast('Failed to confirm alert', 'error')
     }
   }
 
@@ -73,7 +73,7 @@ export default function AlertsPage() {
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Resolved' } : a))
       toast(`Alert ${id.substring(0, 8)} rejected`, 'warning')
     } catch (err) {
-      toast('Failed to reject alert', 'destructive')
+      toast('Failed to reject alert', 'error')
     }
   }
 

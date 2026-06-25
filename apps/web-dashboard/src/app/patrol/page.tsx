@@ -7,27 +7,58 @@ import { ShieldAlert, Crosshair, Map as MapIcon, Battery, Navigation, Radio } fr
 import { cn } from "@/lib/utils"
 import { useWebSocket } from '@/lib/websocket'
 
+import dynamic from 'next/dynamic'
+
+export interface PatrolUnit {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  battery: number;
+  status: string;
+  lastUpdate: Date;
+}
+
+const LiveMap = dynamic(() => import('@/components/map/LiveMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-900 border border-border rounded-xl">
+      <MapIcon className="w-12 h-12 text-muted-foreground/50 animate-pulse" />
+    </div>
+  )
+})
+
 export default function PatrolBoard() {
   const { lastMessage, isConnected } = useWebSocket()
-  const [units, setUnits] = useState<Record<string, any>>({})
+  const [units, setUnits] = useState<Record<string, PatrolUnit>>({})
+  const [focusedLocation, setFocusedLocation] = useState<[number, number] | null>(null)
 
   useEffect(() => {
     if (!lastMessage) return
 
     if (lastMessage.type === 'telemetry') {
       const data = lastMessage.data
-      setUnits(prev => ({
-        ...prev,
-        [lastMessage.unit_id]: {
-          id: lastMessage.unit_id,
-          name: `Unit ${lastMessage.unit_id.substring(0, 4).toUpperCase()}`,
-          lat: data.lat,
-          lng: data.lng,
-          battery: data.battery,
-          status: 'Active Patrol',
-          lastUpdate: new Date()
-        }
-      }))
+
+      if (data.event_type === 'DUTY_OFF' || data.status === 'OFF DUTY') {
+        setUnits(prev => {
+          const updated = { ...prev }
+          delete updated[lastMessage.unit_id]
+          return updated
+        })
+      } else {
+        setUnits(prev => ({
+          ...prev,
+          [lastMessage.unit_id]: {
+            id: lastMessage.unit_id,
+            name: data.officer_name || `Unit ${lastMessage.unit_id.substring(0, 4).toUpperCase()}`,
+            lat: data.lat,
+            lng: data.lng,
+            battery: data.battery ?? 0,
+            status: data.status === 'on_duty' ? 'Active Patrol' : data.status || 'Active Patrol',
+            lastUpdate: new Date()
+          }
+        }))
+      }
     }
   }, [lastMessage])
 
@@ -40,7 +71,7 @@ export default function PatrolBoard() {
         let changed = false
         for (const [id, unit] of Object.entries(updated)) {
           if (now - unit.lastUpdate.getTime() > 60000) { // older than 60s
-            updated[id] = { ...unit, status: 'Offline' }
+            delete updated[id]
             changed = true
           }
         }
@@ -52,46 +83,29 @@ export default function PatrolBoard() {
 
   const unitList = Object.values(units)
 
+  const handleUnitClick = (unit: PatrolUnit) => {
+    if (unit.lat != null && unit.lng != null) {
+      setFocusedLocation([unit.lat, unit.lng])
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Patrol & Response Fleet</h1>
-          <p className="text-muted-foreground flex items-center gap-2">
+          <div className="text-muted-foreground flex items-center gap-2 mt-2">
             Live tactical deployment tracking.
             <Badge variant={isConnected ? "success" : "destructive"}>
               {isConnected ? "Telemetry Active" : "Telemetry Offline"}
             </Badge>
-          </p>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 relative h-[600px] bg-slate-900 rounded-xl overflow-hidden border border-border flex items-center justify-center">
-           <div className="absolute inset-0 opacity-20"
-             style={{
-               backgroundImage: 'linear-gradient(rgba(3,181,211,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(3,181,211,0.2) 1px, transparent 1px)',
-               backgroundSize: '40px 40px'
-             }}
-           ></div>
-           
-           <MapIcon className="w-24 h-24 text-muted-foreground/20 absolute" />
-           <p className="text-muted-foreground/40 absolute mt-32 font-bold tracking-widest uppercase">Tactical Map Placeholder</p>
-
-           {unitList.map((u) => (
-             <div key={u.id} className="absolute z-10 flex flex-col items-center" style={{
-               // Mocking a relative position on a 0-100 grid for demonstration if lat/lng are small diffs
-               // Real map would use leaflet or mapbox
-               left: `${(u.lng % 0.1) * 1000}%`,
-               top: `${(u.lat % 0.1) * 1000}%`
-             }}>
-               <div className="w-4 h-4 bg-primary rounded-full animate-ping absolute opacity-75"></div>
-               <div className="w-4 h-4 bg-primary border-2 border-background rounded-full relative z-10 shadow-[0_0_15px_rgba(3,181,211,0.8)]"></div>
-               <Badge className="mt-2 bg-black/80 backdrop-blur-sm border-primary/50 text-[10px] whitespace-nowrap">
-                 {u.name}
-               </Badge>
-             </div>
-           ))}
+        <div className="lg:col-span-2 relative h-[600px] bg-slate-900 rounded-xl overflow-hidden border border-border">
+          <LiveMap units={unitList} focusedLocation={focusedLocation} />
         </div>
 
         <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
@@ -106,10 +120,14 @@ export default function PatrolBoard() {
             </Card>
           ) : (
             unitList.map(unit => (
-              <Card key={unit.id} className={cn(
-                "transition-all",
-                unit.status === 'Offline' ? "opacity-50" : "border-primary/30 bg-primary/5"
-              )}>
+              <Card 
+                key={unit.id} 
+                onClick={() => handleUnitClick(unit)}
+                className={cn(
+                  "transition-all cursor-pointer hover:border-primary/60",
+                  unit.status === 'Offline' ? "opacity-50" : "border-primary/30 bg-primary/5"
+                )}
+              >
                 <CardHeader className="pb-2 p-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{unit.name}</CardTitle>
@@ -122,7 +140,9 @@ export default function PatrolBoard() {
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Navigation className="w-3 h-3" /> Location
                       </span>
-                      <span className="font-mono">{unit.lat.toFixed(4)}, {unit.lng.toFixed(4)}</span>
+                      <span className="font-mono">
+                        {unit.lat != null ? unit.lat.toFixed(4) : 'N/A'}, {unit.lng != null ? unit.lng.toFixed(4) : 'N/A'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground flex items-center gap-1">

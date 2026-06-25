@@ -16,7 +16,22 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
 
-const columns = [
+type Unit = {
+  id: string;
+  location: string;
+  time: string;
+  type: string;
+  target?: string;
+  task?: string;
+};
+
+type Column = {
+  id: string;
+  title: string;
+  units: Unit[];
+};
+
+const columns: Column[] = [
   {
     id: 'standby',
     title: 'Standby / Ready',

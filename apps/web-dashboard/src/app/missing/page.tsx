@@ -48,7 +48,7 @@ export default function MissingPersonsPage() {
       }))
       setPersons(mapped)
     } catch (e) {
-      toast('Failed to load missing persons', 'destructive')
+      toast('Failed to load missing persons', 'error')
     }
   }
 
@@ -86,7 +86,7 @@ export default function MissingPersonsPage() {
       setFile(null)
       fetchPersons()
     } catch (err) {
-      toast('Failed to register missing person', 'destructive')
+      toast('Failed to register missing person', 'error')
     } finally {
       setIsSubmitting(false)
     }

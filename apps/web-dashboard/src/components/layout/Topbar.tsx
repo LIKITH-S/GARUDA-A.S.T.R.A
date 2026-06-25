@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast'
 export function Topbar() {
   const router = useRouter()
   const { toast } = useToast()
+  // useAuth removed since we no longer display user info here
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState('')
 
@@ -73,13 +74,6 @@ export function Topbar() {
         </button>
         
         <div className="h-8 w-[1px] bg-border mx-2"></div>
-        
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">COMMAND CENTER</p>
-            <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">Level 4 Clearance</p>
-          </div>
-        </div>
       </div>
     </header>
   )

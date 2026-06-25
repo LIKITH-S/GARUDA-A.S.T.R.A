@@ -96,12 +96,12 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Command Overview</h1>
-          <p className="text-muted-foreground flex items-center gap-2">
+          <div className="text-muted-foreground flex items-center gap-2">
             Real-time surveillance and system intelligence.
             <Badge variant={isConnected ? "success" : "destructive"}>
               {isConnected ? "Live Connection" : "Disconnected"}
             </Badge>
-          </p>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button size="sm" onClick={() => router.push('/alerts')}>
@@ -220,7 +220,7 @@ export default function Dashboard() {
                     log.type === 'warning' ? 'bg-yellow-500' :
                     log.type === 'info' ? 'bg-blue-500' : 'bg-muted-foreground'
                   )}></div>
-                  <span className="font-mono text-muted-foreground whitespace-nowrap">{log.time}</span>
+                  <span suppressHydrationWarning className="font-mono text-muted-foreground whitespace-nowrap">{log.time}</span>
                   <span className="font-medium">{log.event}</span>
                 </div>
               ))}
