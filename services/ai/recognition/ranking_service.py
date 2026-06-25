@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Tuple, Optional
-from services.ai.core.similarity_service import calculate_cosine_similarity
+from services.ai.recognition.similarity_service import calculate_cosine_similarity
 
 logger = logging.getLogger(__name__)
 

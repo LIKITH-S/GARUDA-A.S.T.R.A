@@ -3,7 +3,7 @@ import tempfile
 import os
 from typing import List, Optional
 from deepface import DeepFace
-from services.ai.core.deepface_service import DeepFaceConfig
+from services.ai.recognition.deepface_service import DeepFaceConfig
 
 logger = logging.getLogger(__name__)
 import os
