@@ -46,5 +46,6 @@ async def login_access_token(
         ),
         "token_type": "bearer",
         "role": role_value,
-        "user_id": str(user.id)
+        "user_id": str(user.id),
+        "full_name": user.full_name
     }

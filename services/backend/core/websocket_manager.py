@@ -13,21 +13,25 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, user: User):
         """
-        Accepts a WebSocket connection and registers it in the correct role dictionary.
+        Registers a WebSocket connection in the correct role dictionary.
+        NOTE: websocket.accept() must be called BEFORE passing to this method.
         """
-        await websocket.accept()
         user_id = str(user.id)
         role_name = user.role.name if user.role else "unknown"
 
         if role_name == "admin":
             self.active_admins[user_id] = websocket
+            return True
         elif role_name == "dispatcher":
             self.active_dispatchers[user_id] = websocket
-        elif role_name == "patrol":
+            return True
+        elif role_name in ["patrol", "officer"]:
             self.active_patrols[user_id] = websocket
+            return True
         else:
             # If an unknown role attempts to connect, we close it immediately
             await websocket.close(code=1008, reason="Unauthorized role")
+            return False
 
     def disconnect(self, user: User):
         """
@@ -40,7 +44,7 @@ class ConnectionManager:
             del self.active_admins[user_id]
         elif role_name == "dispatcher" and user_id in self.active_dispatchers:
             del self.active_dispatchers[user_id]
-        elif role_name == "patrol" and user_id in self.active_patrols:
+        elif role_name in ["patrol", "officer"] and user_id in self.active_patrols:
             del self.active_patrols[user_id]
 
     async def send_personal_message(self, message: dict, user_id: str, role: str):
@@ -52,7 +56,7 @@ class ConnectionManager:
             websocket = self.active_admins.get(user_id)
         elif role == "dispatcher":
             websocket = self.active_dispatchers.get(user_id)
-        elif role == "patrol":
+        elif role in ["patrol", "officer"]:
             websocket = self.active_patrols.get(user_id)
 
         if websocket:
@@ -75,10 +79,10 @@ class ConnectionManager:
 
     async def broadcast_global_alert(self, message: dict):
         """
-        Sends an alert to Admins and Dispatchers. 
-        Patrol units only receive targeted alerts via send_personal_message.
+        Sends an alert to Admins, Dispatchers, and Patrols so anyone looking at the dashboard can see live telemetry.
         """
         await self.broadcast_to_admins(message)
         await self.broadcast_to_dispatchers(message)
+        await self.broadcast_to_patrols(message)
 
 manager = ConnectionManager()

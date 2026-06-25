@@ -40,6 +40,7 @@ async def websocket_endpoint(
     websocket: WebSocket,
     token: str = Query(..., description="JWT token for authentication")
 ):
+    await websocket.accept()
     user = await get_ws_user(token)
     
     if not user:
@@ -48,7 +49,9 @@ async def websocket_endpoint(
         return
 
     # Accept and route the connection
-    await manager.connect(websocket, user)
+    is_authorized = await manager.connect(websocket, user)
+    if not is_authorized:
+        return
     
     try:
         while True:
@@ -59,8 +62,8 @@ async def websocket_endpoint(
                 await websocket.send_json({"type": "pong"})
                 continue
                 
-            # If the user is a patrol, they might be sending telemetry
-            if data.get("type") == "telemetry" and user.role.name == "patrol":
+            # If the user is a patrol/officer, they might be sending telemetry
+            if data.get("type") == "telemetry" and user.role.name in ["patrol", "officer"]:
                 payload = data.get("payload", {})
                 await telemetry_service.process_patrol_telemetry(str(user.id), payload)
 
