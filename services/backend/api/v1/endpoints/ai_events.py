@@ -4,8 +4,8 @@ from sqlalchemy.future import select
 from services.backend.api import deps
 from database.models.ai_events import DetectionEvent, Alert
 from database.models.registry import MissingPerson
-from services.ai.core.embedding_service import generate_embedding
-from services.ai.core.ranking_service import get_best_match
+from services.ai.recognition.embedding_service import generate_embedding
+from services.ai.recognition.ranking_service import get_best_match
 from services.backend.api.v1.endpoints.websockets import manager
 import base64
 import uuid

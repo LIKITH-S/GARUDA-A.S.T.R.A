@@ -61,7 +61,7 @@ async def read_missing_persons(
     return result.scalars().all()
 
 from fastapi import UploadFile, File
-from services.ai.core.embedding_service import generate_embedding
+from services.ai.recognition.embedding_service import generate_embedding
 import json
 
 @router.post("/{person_id}/image")
