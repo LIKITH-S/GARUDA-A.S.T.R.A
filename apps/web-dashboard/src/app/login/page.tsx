@@ -23,7 +23,7 @@ export default function LoginPage() {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
       
       const formData = new URLSearchParams()
-      formData.append('username', email)
+      formData.append('username', email.trim().toLowerCase())
       formData.append('password', password)
 
       const response = await fetch(`${baseUrl}/auth/login`, {
@@ -37,21 +37,29 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.detail || 'Login failed')
+        let errorMsg = 'Login failed'
+        if (data.error && data.error.message) {
+          errorMsg = data.error.message
+        } else if (typeof data.detail === 'string') {
+          errorMsg = data.detail
+        } else if (Array.isArray(data.detail)) {
+          errorMsg = data.detail[0].msg
+        }
+        toast(errorMsg, 'error')
         return
       }
 
       // Block Patrol Units from logging into Web Dashboard
       if (data.role && (data.role.toLowerCase() === 'patrol officer' || data.role.toLowerCase() === 'patrol')) {
-        setError('Patrol Units cannot access the Web Dashboard. Please use the Mobile App.')
+        toast('Patrol Units cannot access the Web Dashboard.', 'error')
         return
       }
 
       login(data.access_token, data.role, data.user_id, data.full_name)
       toast('Authorization granted.', 'success')
       
-    } catch (err) {
-      toast('Access denied. Invalid credentials.', 'error')
+    } catch (err: any) {
+      toast(err.message || 'Access denied. Invalid credentials.', 'error')
     } finally {
       setIsLoading(false)
     }
