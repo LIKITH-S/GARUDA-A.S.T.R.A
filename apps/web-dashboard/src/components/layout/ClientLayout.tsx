@@ -9,7 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { useWebSocket } from '@/lib/websocket'
+import { useWebSocket, WebSocketProvider } from '@/lib/websocket'
 
 export function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -48,7 +48,6 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
           ctx.resume()
         }
         
-        // Play a simple alert sequence
         const playBeep = (freq: number, startTime: number, duration: number) => {
           const osc = ctx.createOscillator()
           const gain = ctx.createGain()
@@ -72,6 +71,17 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
     }
   }, [lastMessage])
 
+  // Close mobile menu when resizing to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   if (isAdminRoute && role !== 'admin') {
     return null // Return nothing while redirecting
   }
@@ -89,8 +99,8 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       {!isLoginPage && (
         <div className={cn(
-          "fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-in-out md:relative md:transform-none md:flex",
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:flex",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
           {isAdminRoute ? <AdminSidebar /> : <Sidebar />}
         </div>
@@ -109,7 +119,9 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <ClientLayoutContent>{children}</ClientLayoutContent>
+      <WebSocketProvider>
+        <ClientLayoutContent>{children}</ClientLayoutContent>
+      </WebSocketProvider>
     </AuthProvider>
   )
 }

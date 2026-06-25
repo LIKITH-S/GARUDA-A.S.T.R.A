@@ -1,10 +1,22 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/v1/ws/connect'
 
-export function useWebSocket() {
+interface WebSocketContextValue {
+  isConnected: boolean
+  lastMessage: any
+  sendMessage: (msg: any) => void
+}
+
+const WebSocketContext = createContext<WebSocketContextValue>({
+  isConnected: false,
+  lastMessage: null,
+  sendMessage: () => {}
+})
+
+export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false)
   const [lastMessage, setLastMessage] = useState<any>(null)
   const wsRef = useRef<WebSocket | null>(null)
@@ -39,21 +51,18 @@ export function useWebSocket() {
       console.log(`WebSocket disconnected with code: ${event.code}`)
       setIsConnected(false)
       wsRef.current = null
-      
+
       if (event.code === 1008) {
         console.error("Unauthorized WebSocket connection. Clearing token.")
         localStorage.removeItem('astra_token')
-        // Optional: window.location.href = '/login'
       } else {
-        // Reconnect after 3 seconds for other errors
         reconnectTimeoutRef.current = setTimeout(connect, 3000)
       }
     }
 
     ws.onerror = (error) => {
-      // In React Strict Mode, the connection might be aborted during mount/unmount cycle
       if (ws.readyState !== WebSocket.OPEN) {
-        console.warn('WebSocket connection attempt aborted or failed (likely due to Strict Mode or server restart).')
+        console.warn('WebSocket connection attempt aborted or failed.')
       } else {
         console.error('WebSocket error:', error)
       }
@@ -66,12 +75,8 @@ export function useWebSocket() {
   useEffect(() => {
     connect()
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close()
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
+      if (wsRef.current) wsRef.current.close()
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
     }
   }, [connect])
 
@@ -81,5 +86,13 @@ export function useWebSocket() {
     }
   }, [])
 
-  return { isConnected, lastMessage, sendMessage }
+  return (
+    <WebSocketContext.Provider value={{ isConnected, lastMessage, sendMessage }}>
+      {children}
+    </WebSocketContext.Provider>
+  )
+}
+
+export function useWebSocket() {
+  return useContext(WebSocketContext)
 }
