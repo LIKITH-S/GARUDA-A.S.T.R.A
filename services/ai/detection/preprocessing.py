@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 import cv2
 import numpy as np
 
@@ -8,13 +9,13 @@ class Preprocessor:
     """Service for preprocessing image crops for model ingestion."""
 
     @staticmethod
-    def preprocess_face(crop_frame: np.ndarray, target_size: tuple = (112, 112)) -> bytes:
+    def preprocess_face(crop_frame: np.ndarray, target_size: Optional[tuple] = None) -> bytes:
         """
-        Resizes a face crop to the target size and encodes it as JPEG bytes.
+        Encodes a face crop as JPEG bytes, optionally resizing it.
         
         Args:
             crop_frame: The cropped face image array (BGR format).
-            target_size: The target dimensions (width, height). Default is (112, 112) for ArcFace.
+            target_size: The optional target dimensions (width, height).
             
         Returns:
             The image encoded as JPEG bytes.
@@ -25,13 +26,16 @@ class Preprocessor:
                 logger.error("Invalid or empty crop_frame provided for preprocessing.")
                 return b''
                 
-            # Resize image
-            resized = cv2.resize(crop_frame, target_size, interpolation=cv2.INTER_AREA)
+            # Resize image only if target_size is provided
+            if target_size is not None:
+                processed = cv2.resize(crop_frame, target_size, interpolation=cv2.INTER_AREA)
+            else:
+                processed = crop_frame
             
             # Encode as JPEG
-            success, encoded = cv2.imencode('.jpg', resized)
+            success, encoded = cv2.imencode('.jpg', processed)
             if not success:
-                logger.error("Failed to encode resized crop as JPEG.")
+                logger.error("Failed to encode crop as JPEG.")
                 return b''
                 
             return encoded.tobytes()
@@ -39,3 +43,4 @@ class Preprocessor:
         except Exception as e:
             logger.error(f"Error during face preprocessing: {e}")
             return b''
+
