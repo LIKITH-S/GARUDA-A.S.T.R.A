@@ -51,3 +51,11 @@ class AIHealthStatus(Base, UUIDMixin, TimestampMixin):
 
     status: Mapped[str] = mapped_column(String(50))
     last_ping: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+class SystemSettings(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "system_settings"
+
+    processing_engine: Mapped[str] = mapped_column(String(20), default="cpu")
+    detection_threshold: Mapped[float] = mapped_column(default=0.45)
+    face_extraction_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sound_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

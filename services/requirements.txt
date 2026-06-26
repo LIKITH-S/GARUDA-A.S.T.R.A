@@ -25,3 +25,6 @@ deepface
 opencv-python-headless
 scipy
 tf-keras
+ultralytics
+onnx
+onnxruntime
