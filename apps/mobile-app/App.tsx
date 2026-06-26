@@ -142,8 +142,39 @@ export default function App() {
           });
           setCases(mappedCases);
 
-          // We intentionally do not fetch historical alerts here.
-          // Alerts are only populated via WebSocket when the dispatcher sends an assignment.
+          // Fetch historical alerts that have been forwarded/assigned
+          const backendAlerts = await getAlertsApi();
+          const forwardedAlerts = backendAlerts.filter(
+            (a: any) => ['Verified', 'Assigned', 'Dispatched'].includes(a.status)
+          );
+          
+          const mappedAlerts = forwardedAlerts.map((a: any) => {
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+            const photoPath = a.missing_person?.photo_path?.startsWith('/') ? a.missing_person.photo_path : `/${a.missing_person?.photo_path}`;
+            const finalPhotoUrl = a.missing_person?.photo_path ? `${baseUrl}${photoPath}` : 'https://ui-avatars.com/api/?name=Unknown';
+            
+            return {
+              id: a.id,
+              title: 'URGENT ASSIGNMENT',
+              subtitle: `Match for ${a.missing_person?.full_name || 'Unknown'}`,
+              threatLevel: 'CRITICAL',
+              fileNo: a.missing_person?.case_number || 'N/A',
+              lastSeenLocation: a.missing_person?.last_seen_location || 'Unknown',
+              lastSeenTime: a.missing_person?.date_missing ? new Date(a.missing_person.date_missing).toLocaleString() : 'Unknown',
+              mugshotUrl: finalPhotoUrl,
+              latitude: a.detection_event?.location_lat || 18.9431,
+              longitude: a.detection_event?.location_lng || 72.8246,
+              status: 'ALERT',
+              assignedOfficer: { name: officer.name, unitId: officer.id, rank: officer.rank },
+              telemetry: { azimuth: '045°', zoom: '2.4x', lens: '50mm', signal: 'STRONG' }
+            };
+          });
+
+          setAlerts((prev) => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newOnes = mappedAlerts.filter((m: any) => !existingIds.has(m.id));
+            return [...newOnes, ...prev];
+          });
 
         } catch (e) {
           console.warn('⚠️ Failed to fetch backend data on load:', e);

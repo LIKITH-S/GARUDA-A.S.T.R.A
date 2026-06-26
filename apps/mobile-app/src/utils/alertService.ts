@@ -81,6 +81,17 @@ export function normalizeAlert(payload: BackendAlertPayload): AlertItem {
   };
 }
 
+import * as Notifications from 'expo-notifications';
+
+// Set up notification handler so it shows up even when app is foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 /**
  * Universal alert injection point.
  * Call this from WebSocket handler, local simulation, or any source.
@@ -99,6 +110,18 @@ export function injectAlert(payload: BackendAlertPayload): AlertItem | null {
 
   // Trigger full-screen tactical popup + audio
   callbacks.onTacticalPopup(alert);
+
+  // Send local push notification
+  Notifications.scheduleNotificationAsync({
+    content: {
+      title: `🚨 ${alert.threatLevel} THREAT DETECTED`,
+      body: `Match for ${alert.title} at ${alert.lastSeenLocation}`,
+      data: { alertId: alert.id },
+    },
+    trigger: null, // trigger immediately
+  }).catch((err) => {
+    console.warn('⚠️ [ALERT SERVICE] Failed to send push notification:', err);
+  });
 
   console.log(`
 🚨 ============ INCOMING ALERT ============
