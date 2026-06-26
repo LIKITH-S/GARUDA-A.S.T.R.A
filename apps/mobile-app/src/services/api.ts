@@ -66,3 +66,33 @@ export async function rejectAlertApi(id: string) {
 
   return response.json();
 }
+
+export async function getMissingPersonsApi() {
+  const headers = await getHeaders();
+  const response = await fetch(`${API_URL}/missing-persons/`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Failed to fetch missing persons. Status: ${response.status}, Body: ${errorText}`);
+    throw new Error('Failed to fetch missing persons');
+  }
+
+  return response.json();
+}
+
+export async function getAlertsApi() {
+  const headers = await getHeaders();
+  const response = await fetch(`${API_URL}/alerts/`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch alerts');
+  }
+
+  return response.json();
+}

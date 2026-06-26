@@ -56,8 +56,8 @@ export default function App() {
   const [dutyAcknowledged, setDutyAcknowledged] = useState(false);
 
   // Live state tracking
-  const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS);
-  const [cases, setCases] = useState<CaseItem[]>(INITIAL_CASES);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [cases, setCases] = useState<CaseItem[]>([]);
   const [messages, setMessages] = useState<MessageItem[]>(INITIAL_MESSAGES);
   const [officer, setOfficer] = useState<OfficerProfile>(INITIAL_OFFICER);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
@@ -114,6 +114,45 @@ export default function App() {
       }
     };
   }, [isAuthorized, officer.status]);
+
+  // Fetch initial data from backend
+  useEffect(() => {
+    if (isAuthorized) {
+      const fetchBackendData = async () => {
+        try {
+          const { getAlertsApi, getMissingPersonsApi } = require('./src/services/api');
+          
+          const backendCases = await getMissingPersonsApi();
+          const mappedCases: CaseItem[] = backendCases.map((c: any) => {
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+            const photoPath = c.photo_path?.startsWith('/') ? c.photo_path : `/${c.photo_path}`;
+            const finalPhotoUrl = c.photo_path ? `${baseUrl}${photoPath}` : 'https://ui-avatars.com/api/?name=Unknown';
+            return {
+              id: c.id,
+              name: c.full_name,
+              age: c.age || 0,
+              gender: c.gender || 'UNKNOWN',
+              missingSince: new Date(c.date_missing).toLocaleDateString(),
+              lastSeen: c.last_seen_location || 'Unknown',
+              photoUrl: finalPhotoUrl,
+              status: c.status?.toUpperCase() || 'ACTIVE',
+              caseType: 'MISSING',
+              description: c.description || '',
+            };
+          });
+          setCases(mappedCases);
+
+          // We intentionally do not fetch historical alerts here.
+          // Alerts are only populated via WebSocket when the dispatcher sends an assignment.
+
+        } catch (e) {
+          console.warn('⚠️ Failed to fetch backend data on load:', e);
+        }
+      };
+      
+      fetchBackendData();
+    }
+  }, [isAuthorized]);
 
   // Periodic Permission Monitor Hook (Fault Tolerance)
   useEffect(() => {
