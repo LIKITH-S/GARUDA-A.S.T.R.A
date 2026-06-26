@@ -77,7 +77,10 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
               <Text style={styles.feedValue}>{alert.cameraName || 'CAM-224-B'}</Text>
             </View>
             <View style={styles.feedImageWrapper}>
-              <Image source={{ uri: alert.mugshotUrl }} style={styles.feedImageGray} />
+              <Image 
+                source={{ uri: alert.mugshotUrl || 'https://via.placeholder.com/150' }} 
+                style={styles.feedImageGray} 
+              />
               {currentStatus === 'ALERT' && (
                 <ScanLine color={COLORS.secondary} duration={3000} />
               )}

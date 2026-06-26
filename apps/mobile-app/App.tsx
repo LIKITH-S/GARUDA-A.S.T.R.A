@@ -255,9 +255,9 @@ export default function App() {
 
     try {
       const { verifyAlertApi, rejectAlertApi } = require('./src/services/api');
-      if (status === 'FALSE ALARM') {
+      if (status === 'FALSE ALARM' || status === 'FALSE ALERT') {
         await rejectAlertApi(alertId);
-      } else if (status === 'RESOLVED' || status === 'APPREHENDED') {
+      } else if (status === 'RESOLVED' || status === 'APPREHENDED' || status === 'COMPLETED') {
         await verifyAlertApi(alertId);
       }
     } catch (e) {
