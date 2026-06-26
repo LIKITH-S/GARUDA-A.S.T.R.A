@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 CROPS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "uploads", "crops")
 
 def run_cv2_processing(video_id: str, video_path: str, video_crops_dir: str):
+    import os
+    os.environ["OMP_NUM_THREADS"] = "1"
+    cv2.setNumThreads(0) # Prevent OpenMP Segfault in background threads
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise Exception(f"Failed to open video file {video_path}")

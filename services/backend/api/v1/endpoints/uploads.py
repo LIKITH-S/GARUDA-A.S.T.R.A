@@ -1,6 +1,7 @@
 import os
 import uuid
 import shutil
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -37,9 +38,12 @@ async def upload_video(
     safe_filename = f"{video_id}{ext}"
     file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
+    def save_upload_file(upload_file, destination):
+        with open(destination, "wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
+
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        await asyncio.to_thread(save_upload_file, file, file_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
