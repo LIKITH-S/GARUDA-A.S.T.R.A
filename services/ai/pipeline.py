@@ -21,9 +21,11 @@ from services.ai.detection.frame_extractor import FrameExtractor
 from services.ai.detection.face_detection import FaceDetector
 from services.ai.detection.face_cropper import FaceCropper
 from services.ai.detection.preprocessing import Preprocessor
-from services.ai.recognition.embedding_service import generate_embedding
-from services.ai.recognition.ranking_service import get_best_match
-from services.ai.recognition.identity_manager import load_identities
+
+# Recognition imports disabled to prevent TensorFlow/PyTorch CUDA conflicts (SEGV 11)
+# from services.ai.recognition.embedding_service import generate_embedding
+# from services.ai.recognition.ranking_service import get_best_match
+# from services.ai.recognition.identity_manager import load_identities
 
 def run_analysis_pipeline(
     video_path: str, 
@@ -41,14 +43,14 @@ def run_analysis_pipeline(
     # 1. Threading safety for background execution
     cv2.setNumThreads(0)
     
-    import tensorflow as tf
-    try:
-        # Prevent TF from preallocating all memory if using GPU
-        gpus = tf.config.list_physical_devices('GPU')
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except:
-        pass
+    # TensorFlow memory growth disabled for now since Recognition is disabled
+    # import tensorflow as tf
+    # try:
+    #     gpus = tf.config.list_physical_devices('GPU')
+    #     for gpu in gpus:
+    #         tf.config.experimental.set_memory_growth(gpu, True)
+    # except:
+    #     pass
     
     if not os.path.exists(video_path):
         logger.error(f"Video file not found at {video_path}")
