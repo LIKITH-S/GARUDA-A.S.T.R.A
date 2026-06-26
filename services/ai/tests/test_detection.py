@@ -134,9 +134,34 @@ class TestFaceCropper(unittest.TestCase):
         cropped = FaceCropper.crop_face(frame, facial_area)
         self.assertIsNone(cropped)
 
+from services.ai.detection.preprocessing import Preprocessor
+
 class TestPreprocessing(unittest.TestCase):
-    def test_preprocess_crop_stub(self):
-        self.assertTrue(True)
+    def test_preprocess_face_valid(self):
+        import numpy as np
+        import cv2
+        # Dummy crop frame 50x50
+        crop_frame = np.ones((50, 50, 3), dtype=np.uint8) * 200
+        
+        encoded_bytes = Preprocessor.preprocess_face(crop_frame)
+        self.assertIsInstance(encoded_bytes, bytes)
+        self.assertTrue(len(encoded_bytes) > 0)
+        
+        # Verify it can be decoded and has correct size
+        nparr = np.frombuffer(encoded_bytes, np.uint8)
+        decoded = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        self.assertIsNotNone(decoded)
+        self.assertEqual(decoded.shape, (112, 112, 3))
+        
+    def test_preprocess_face_invalid(self):
+        import numpy as np
+        empty_frame = np.array([])
+        encoded_bytes = Preprocessor.preprocess_face(empty_frame)
+        self.assertEqual(encoded_bytes, b'')
+        
+    def test_preprocess_face_none(self):
+        encoded_bytes = Preprocessor.preprocess_face(None)
+        self.assertEqual(encoded_bytes, b'')
 
 if __name__ == '__main__':
     unittest.main()

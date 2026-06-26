@@ -41,9 +41,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Implement `video_service.py` and `frame_extractor.py` with frame skipping rules.
-- [ ] 02-02: Implement `face_detection.py` utilizing standalone RetinaFace library, and `face_cropper.py`.
-- [ ] 02-03: Implement `preprocessing.py` for cropping alignment and 112x112 resizing.
+- [x] 02-01: Implement `video_service.py` and `frame_extractor.py` with frame skipping rules.
+- [x] 02-02: Implement `face_detection.py` utilizing standalone RetinaFace library, and `face_cropper.py`.
+- [x] 02-03: Implement `preprocessing.py` for cropping alignment and 112x112 resizing.
 
 ---
 
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Recognition Subsystem Migration | 2/2 | Complete   | 2026-06-10 |
+| 1. Recognition Subsystem Migration | 2/2 | Complete    | 2026-06-11 |
 | 2. Detection Subsystem Implementation | 0/3 | Not started | - |
 | 3. Integration Pipelines | 0/2 | Not started | - |
 | 4. Backend Integration & Verification | 0/3 | Not started | - |

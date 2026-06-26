@@ -7,12 +7,12 @@
 
 ### Detection Subsystem (DETC)
 
-- [ ] **DETC-01**: Ingest local video files (`.mp4`) as input to the AI pipeline.
-- [ ] **DETC-02**: Extract video frames from input files programmatically.
-- [ ] **DETC-03**: Detect faces in extracted frames using a standalone RetinaFace library.
-- [ ] **DETC-04**: Crop detected face bounding boxes into separate sub-images.
-- [ ] **DETC-05**: Preprocess crop frames (resize to 112x112 to match ArcFace requirements and normalize color channels).
-- [ ] **DETC-06**: Optimize detection via frame skipping (process every Nth frame to preserve CPU resources).
+- [x] **DETC-01**: Ingest local video files (`.mp4`) as input to the AI pipeline.
+- [x] **DETC-02**: Extract video frames from input files programmatically.
+- [x] **DETC-03**: Detect faces in extracted frames using a standalone RetinaFace library.
+- [x] **DETC-04**: Crop detected face bounding boxes into separate sub-images.
+- [x] **DETC-05**: Preprocess crop frames (resize to 112x112 to match ArcFace requirements and normalize color channels).
+- [x] **DETC-06**: Optimize detection via frame skipping (process every Nth frame to preserve CPU resources).
 
 ### Recognition Subsystem (RECG - Refactored/Existing)
 
@@ -49,12 +49,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DETC-01 | Phase 2 | Pending |
-| DETC-02 | Phase 2 | Pending |
-| DETC-03 | Phase 2 | Pending |
-| DETC-04 | Phase 2 | Pending |
-| DETC-05 | Phase 2 | Pending |
-| DETC-06 | Phase 2 | Pending |
+| DETC-01 | Phase 2 | Complete |
+| DETC-02 | Phase 2 | Complete |
+| DETC-03 | Phase 2 | Complete |
+| DETC-04 | Phase 2 | Complete |
+| DETC-05 | Phase 2 | Complete |
+| DETC-06 | Phase 2 | Complete |
 | RECG-01 | Phase 1 | Complete |
 | RECG-02 | Phase 1 | Complete |
 | RECG-03 | Phase 1 | Complete |
