@@ -83,19 +83,21 @@ class TestFaceDetection(unittest.TestCase):
         faces = FaceDetector.detect_faces(frame)
         self.assertEqual(faces, [])
         
-    @unittest.mock.patch('services.ai.detection.face_detection.RetinaFace')
-    def test_detect_faces_with_mock(self, mock_retinaface):
+    @unittest.mock.patch('services.ai.detection.face_detection.face_model')
+    def test_detect_faces_with_mock(self, mock_yolo):
         import numpy as np
+        from unittest.mock import MagicMock
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         
-        # Mock RetinaFace.detect_faces to return a valid dict
-        mock_retinaface.detect_faces.return_value = {
-            "face_1": {
-                "score": 0.99,
-                "facial_area": [10, 10, 50, 50],
-                "landmarks": {"left_eye": [20, 20]}
-            }
-        }
+        # Mock YOLO inference to return a valid result object
+        mock_box = MagicMock()
+        mock_box.xyxy = [MagicMock(tolist=lambda: [10.0, 10.0, 50.0, 50.0])]
+        mock_box.conf = [MagicMock(item=lambda: 0.99)]
+        
+        mock_result = MagicMock()
+        mock_result.boxes = [mock_box]
+        
+        mock_yolo.return_value = [mock_result]
         
         faces = FaceDetector.detect_faces(frame)
         self.assertEqual(len(faces), 1)

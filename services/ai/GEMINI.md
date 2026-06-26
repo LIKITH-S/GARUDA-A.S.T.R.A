@@ -9,7 +9,7 @@ Garuda A.S.T.R.A is an AI-powered surveillance and tracking platform for missing
 
 ### Constraints
 
-- **Dependency constraint**: Must use a standalone RetinaFace library (more flexible than built-in DeepFace detection backend).
+- **Dependency constraint**: We have completely migrated away from `RetinaFace` and `TensorFlow` for detection. The Detection Subsystem now exclusively uses `YOLOv8-face` via the `ultralytics` package for extreme speed and GPU support.
 - **Optimization constraint**: Must support frame skipping and resolution resizing to handle heavy CCTV inputs without saturating server CPU resources.
 - **Python Version**: Runs on Python 3.10+ (current system uses Python 3.13).
 <!-- GSD:project-end -->

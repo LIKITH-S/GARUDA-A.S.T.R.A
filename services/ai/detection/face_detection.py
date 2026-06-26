@@ -1,24 +1,76 @@
 import logging
 import numpy as np
+import cv2
 from typing import List, Dict, Any
 
-# RetinaFace might output some logs, we can configure our own logger
+# Standard logger for the detection subsystem
 logger = logging.getLogger(__name__)
 
+import os
+
+import httpx
+import torch
+
 try:
-    from retinaface import RetinaFace
-except ImportError:
-    # Optional dependency, mock for tests if not present
-    logger.warning("retinaface is not installed. Face detection will fail.")
-    RetinaFace = None
+    from ultralytics import YOLO
+    ULTRALYTICS_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Ultralytics is not installed. Face detection will fail. Error: {e}")
+    ULTRALYTICS_AVAILABLE = False
 
 class FaceDetector:
     """Service for detecting faces in image frames."""
+    _model = None
+    _current_engine = None
+
+    @classmethod
+    def _initialize_model(cls):
+        if not ULTRALYTICS_AVAILABLE:
+            return
+            
+        engine = "cpu"
+        try:
+            # Sync fetch settings from backend
+            resp = httpx.get("http://localhost:8000/api/v1/settings/", timeout=2.0)
+            if resp.status_code == 200:
+                engine = resp.json().get("processing_engine", "cpu")
+        except Exception:
+            logger.warning("Could not reach backend API for settings. Defaulting to CPU.")
+
+        model_path = os.path.join(os.path.dirname(__file__), "..", "models", "yolov8n-face.pt")
+        onnx_path = model_path.replace(".pt", ".onnx")
+
+        if not os.path.exists(model_path) and not os.path.exists(onnx_path):
+            logger.warning(f"YOLOv8 face model not found at {model_path}.")
+            return
+
+        if engine == "gpu":
+            logger.info("Initializing YOLOv8-face on GPU...")
+            cls._model = YOLO(model_path)
+            cls._current_engine = "gpu"
+        else:
+            logger.info("Initializing YOLOv8-face on CPU (Optimized)...")
+            torch.set_num_threads(4) # Enforce 4 threads for 4 OCPU minimum spec
+            
+            # Export to ONNX if it doesn't exist
+            if not os.path.exists(onnx_path) and os.path.exists(model_path):
+                logger.info("Exporting YOLOv8 to ONNX for CPU optimization...")
+                temp_model = YOLO(model_path)
+                temp_model.export(format='onnx', imgsz=640, half=False, dynamic=False)
+            
+            # Load ONNX model
+            if os.path.exists(onnx_path):
+                cls._model = YOLO(onnx_path, task='detect')
+            else:
+                logger.warning("ONNX export failed, falling back to standard CPU PyTorch.")
+                cls._model = YOLO(model_path)
+                
+            cls._current_engine = "cpu"
 
     @staticmethod
-    def detect_faces(frame: np.ndarray, threshold: float = 0.5) -> List[Dict[str, Any]]:
+    def detect_faces(frame: np.ndarray, threshold: float = 0.30) -> List[Dict[str, Any]]:
         """
-        Detect faces in a frame using RetinaFace.
+        Detect faces in a frame using YOLOv8-face.
         
         Args:
             frame: Image frame array (BGR format).
@@ -29,35 +81,64 @@ class FaceDetector:
             {"facial_area": [x1, y1, x2, y2], "score": score, "landmarks": landmarks}
             Returns an empty list if no faces are found or an error occurs.
         """
-        if RetinaFace is None:
-            logger.error("retinaface library is not available.")
+        if FaceDetector._model is None:
+            FaceDetector._initialize_model()
+            
+        if FaceDetector._model is None:
+            logger.error("YOLOv8 model is not available.")
             return []
             
         try:
-            # RetinaFace returns a dict mapping face IDs (str) to face dicts
-            # Or it might return a tuple depending on the version/parameters, 
-            # but usually it's a dict for successful detections.
-            results = RetinaFace.detect_faces(frame, threshold=threshold)
+            # OPTIMIZATION: Downscale frame for detection to massively speed up YOLO
+            orig_h, orig_w = frame.shape[:2]
+            max_dim = 640.0
+            scale = 1.0
             
-            # If no faces detected or an error, it might return a tuple or empty list
-            if not isinstance(results, dict):
-                return []
+            if max(orig_h, orig_w) > max_dim:
+                scale = max(orig_h, orig_w) / max_dim
+                new_w = int(orig_w / scale)
+                new_h = int(orig_h / scale)
+                detect_frame = cv2.resize(frame, (new_w, new_h))
+            else:
+                detect_frame = frame
                 
+            # YOLOv8 inference (dynamic device injection)
+            device_arg = '0' if FaceDetector._current_engine == 'gpu' else 'cpu'
+            use_half = FaceDetector._current_engine == 'gpu'
+            results = FaceDetector._model(detect_frame, conf=threshold, verbose=False, device=device_arg, half=use_half)
+            
             faces = []
-            for face_id, face_info in results.items():
-                if isinstance(face_info, dict) and "facial_area" in face_info:
+            for result in results:
+                boxes = result.boxes
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    conf = box.conf[0].item()
+                    # Scale bounding box back to original 1080p/4k resolution
+                    if scale != 1.0:
+                        area = [int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)]
+                    else:
+                        area = [int(x1), int(y1), int(x2), int(y2)]
+                        
+                    w = area[2] - area[0]
+                    h = area[3] - area[1]
+                    
+                    # HEURISTIC 1: Reject extremely small noise boxes
+                    if w < 20 or h < 20:
+                        continue
+                        
+                    # HEURISTIC 2: Reject unnatural aspect ratios (like long thin arms)
+                    # A face is almost always a slightly tall rectangle. Width/Height usually between 0.65 and 0.95.
+                    # We will allow up to 1.15 to account for slight sideways angles.
+                    aspect_ratio = w / max(h, 1)
+                    if aspect_ratio < 0.6 or aspect_ratio > 1.15:
+                        continue
+                        
                     faces.append({
-                        "facial_area": face_info["facial_area"],
-                        "score": face_info.get("score", 0.0),
-                        "landmarks": face_info.get("landmarks", {})
+                        "facial_area": area,
+                        "score": float(conf),
+                        "landmarks": {}
                     })
-            for face in faces:
-                x1,y1,x2,y2 = face["facial_area"]
-
-                width = x2-x1
-                height = y2-y1
-
-                print(width,height)
+            
             return faces
         except Exception as e:
             logger.error(f"Error during face detection: {e}")
