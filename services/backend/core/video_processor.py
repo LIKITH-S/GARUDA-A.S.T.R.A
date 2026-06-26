@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Base path for saving crops
 CROPS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "uploads", "crops")
 
-from services.ai.pipeline import run_analysis_pipeline
+
 
 async def process_video_task(video_id: str):
     """
@@ -45,30 +45,63 @@ async def process_video_task(video_id: str):
             
             logger.info(f"Starting background processing for video {video_id} at {video_path}")
             
-            progress_state = {"progress": 0.0, "done": False}
-            
-            async def update_db_progress():
-                while not progress_state["done"]:
-                    video.progress = progress_state["progress"]
-                    await db.commit()
-                    await asyncio.sleep(2)
-            
-            updater_task = asyncio.create_task(update_db_progress())
-            
-            def progress_callback(prog: float):
-                progress_state["progress"] = prog
+            import sys
+            import json
 
-            # Run heavy CPU processing in a separate thread
-            results = await asyncio.to_thread(
-                run_analysis_pipeline, 
-                video_path=video_path, 
-                video_id=video_id,
-                crops_dir=video_crops_dir,
-                progress_callback=progress_callback
+            # Run heavy CPU processing in a completely isolated subprocess
+            # This completely prevents OpenMP/CUDA/TensorFlow Segfaults (SEGV 11)
+            # because the ML models have their own pristine memory space.
+            python_exec = sys.executable
+            run_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ai", "run_pipeline.py"))
+            
+            process = await asyncio.create_subprocess_exec(
+                python_exec, "-u", run_script, video_path, video_id, video_crops_dir,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT
             )
-
-            progress_state["done"] = True
-            await updater_task
+            
+            # We will stream all AI logs to a dedicated file in the root directory
+            log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai_pipeline.log"))
+            
+            with open(log_file_path, "a") as log_file:
+                log_file.write(f"\\n--- STARTING ANALYSIS FOR VIDEO: {video_id} ---\\n")
+                log_file.flush()
+                
+                results = []
+                while True:
+                    line = await process.stdout.readline()
+                    if not line:
+                        break
+                        
+                    try:
+                        decoded = line.decode('utf-8').strip()
+                        if decoded.startswith("PROGRESS:"):
+                            prog = float(decoded.split(":", 1)[1])
+                            video.progress = prog
+                            await db.commit()
+                        elif decoded.startswith("RESULT:"):
+                            results_str = decoded.split(":", 1)[1]
+                            results = json.loads(results_str)
+                        elif decoded.startswith("ERROR:"):
+                            err_msg = f"Pipeline error: {decoded}"
+                            logger.error(err_msg)
+                            log_file.write(f"ERROR: {err_msg}\\n")
+                            log_file.flush()
+                            raise Exception(decoded[6:])
+                        else:
+                            # Forward other logs to the dedicated file instead of uvicorn logger
+                            log_file.write(f"{decoded}\\n")
+                            log_file.flush()
+                    except Exception as e:
+                        if "Pipeline error:" not in str(e):
+                            log_file.write(f"Parse Warning: {e} | Line: {line}\\n")
+                            log_file.flush()
+            
+            await process.wait()
+            if process.returncode != 0:
+                error_msg = f"Process failed with code {process.returncode}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
 
             # Mark as completed
             video.status = "COMPLETED"
