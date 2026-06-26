@@ -87,9 +87,8 @@ async def ingest_ai_event(
         }
     }
     
-    # Send to dispatcher role specifically, or broadcast to all dispatchers
-    await manager.broadcast_to_dispatchers(payload)
-    await manager.broadcast_to_admins(payload)
+    # Broadcast to ALL roles — admin, dispatcher, and patrol (officers on mobile)
+    await manager.broadcast_global_alert(payload)
     
     return {"status": "success", "event_id": event.id, "alert_id": alert.id}
 
@@ -171,7 +170,7 @@ async def test_alert(db: AsyncSession = Depends(deps.get_db)):
         }
     }
     
-    await manager.broadcast_to_dispatchers(payload)
-    await manager.broadcast_to_admins(payload)
+    # Broadcast to ALL roles — admin, dispatcher, and patrol (officers on mobile)
+    await manager.broadcast_global_alert(payload)
     
     return {"status": "success", "event_id": event.id, "alert_id": alert.id, "message": "Test alert created and broadcasted"}

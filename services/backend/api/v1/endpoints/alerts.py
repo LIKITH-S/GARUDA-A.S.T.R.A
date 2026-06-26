@@ -49,7 +49,10 @@ async def verify_alert(
 
     result = await db.execute(
         select(Alert)
-        .options(joinedload(Alert.detection_event))
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
         .where(Alert.id == uuid.UUID(alert_id))
     )
     alert = result.scalar_one_or_none()
@@ -60,10 +63,6 @@ async def verify_alert(
     alert.status = "Verified"
     alert.acknowledged_at = datetime.utcnow()
     
-    # Trigger the automated dispatch if we have detection coordinates
-    # For now we'll simulate coordinates or pull from camera metadata later
-    # We'll use dummy coordinates for MG Road Junction if none exist
-    # In a full system, you join the CameraFeed to get the exact location
     await dispatch_service.assign_nearest_patrol(
         db=db, 
         alert=alert, 
@@ -72,8 +71,17 @@ async def verify_alert(
     )
     
     await db.commit()
-    await db.refresh(alert)
-    return alert
+
+    # Re-fetch with all relations eagerly loaded for serialization
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .where(Alert.id == uuid.UUID(alert_id))
+    )
+    return result.scalar_one()
 
 @router.post("/{alert_id}/reject", response_model=AlertRead)
 async def reject_alert(
@@ -85,7 +93,14 @@ async def reject_alert(
     if current_user.role.name not in ["admin", "dispatcher"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    result = await db.execute(select(Alert).where(Alert.id == uuid.UUID(alert_id)))
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .where(Alert.id == uuid.UUID(alert_id))
+    )
     alert = result.scalar_one_or_none()
 
     if not alert:
@@ -95,5 +110,14 @@ async def reject_alert(
     alert.resolved_at = datetime.utcnow()
     
     await db.commit()
-    await db.refresh(alert)
-    return alert
+
+    # Re-fetch with all relations eagerly loaded for serialization
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .where(Alert.id == uuid.UUID(alert_id))
+    )
+    return result.scalar_one()
