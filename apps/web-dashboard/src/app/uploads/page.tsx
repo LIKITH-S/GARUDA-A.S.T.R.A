@@ -13,7 +13,9 @@ import {
   Play,
   Trash2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  X,
+  Video
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
@@ -27,6 +29,8 @@ export default function UploadsPage() {
   const [sector, setSector] = useState('Sector Alpha (Central)')
   const [uploads, setUploads] = useState<any[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   
   const fetchUploads = async () => {
@@ -48,22 +52,48 @@ export default function UploadsPage() {
     fileInputRef.current?.click()
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
     
-    setIsUploading(true)
-    for (let i = 0; i < files.length; i++) {
-      try {
-        setUploadProgress(0)
-        await uploadFootageWithProgress(files[i], cameraId, sector, selectedPriority, (percent) => {
-          setUploadProgress(percent)
-        })
-        toast(`File ${files[i].name} uploaded! Processing started.`, 'success')
-      } catch (err) {
-        toast(`Failed to upload ${files[i].name}`, 'error')
-      }
+    const file = files[0]
+    setSelectedFile(file)
+    
+    // Create a local object URL for the video thumbnail
+    if (file.type.startsWith('video/')) {
+      const url = URL.createObjectURL(file)
+      setVideoPreviewUrl(url)
     }
+  }
+
+  const handleRemoveFile = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedFile(null)
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl)
+      setVideoPreviewUrl(null)
+    }
+  }
+
+  const handleUploadSubmit = async () => {
+    if (!selectedFile) return
+    
+    setIsUploading(true)
+    try {
+      setUploadProgress(0)
+      await uploadFootageWithProgress(selectedFile, cameraId, sector, selectedPriority, (percent) => {
+        setUploadProgress(percent)
+      })
+      toast(`File ${selectedFile.name} uploaded! Processing started.`, 'success')
+      setSelectedFile(null)
+      if (videoPreviewUrl) {
+        URL.revokeObjectURL(videoPreviewUrl)
+        setVideoPreviewUrl(null)
+      }
+    } catch (err) {
+      toast(`Failed to upload ${selectedFile.name}`, 'error')
+    }
+    
     setIsUploading(false)
     setUploadProgress(0)
     fetchUploads()
@@ -78,35 +108,59 @@ export default function UploadsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <Card
-            className="border-dashed border-2 bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer group"
-            onClick={handleFileDrop}
-          >
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <input
+          <Card className="p-0 border-none shadow-none">
+            <div 
+              className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/50 transition-colors bg-secondary/20 relative"
+              onClick={handleFileDrop}
+            >
+              <input 
+                type="file" 
                 ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".mp4,.avi,.mkv,.jpg,.jpeg,.png,.webp"
-                className="hidden"
+                className="hidden" 
                 onChange={handleFileChange}
+                accept="video/*"
               />
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Upload className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">Drop footage here</h3>
-              <p className="text-sm text-muted-foreground mt-1">or click to browse from mission archives</p>
-              <div className="flex gap-4 mt-6">
-                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                   <FileVideo className="w-3 h-3" />
-                   MP4, AVI, MKV
-                 </div>
-                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                   <ImageIcon className="w-3 h-3" />
-                   JPG, PNG, WEBP
-                 </div>
-              </div>
-            </CardContent>
+              
+              {selectedFile ? (
+                <div className="w-full flex flex-col items-center gap-4 relative">
+                  <button 
+                    onClick={handleRemoveFile}
+                    className="absolute -top-4 -right-4 p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/80 transition-colors z-10 shadow-lg"
+                    title="Remove file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  {videoPreviewUrl ? (
+                    <video 
+                      src={videoPreviewUrl} 
+                      className="w-full max-h-48 object-cover rounded-lg shadow-sm border border-border"
+                      controls={false}
+                      muted
+                    />
+                  ) : (
+                    <Video className="w-16 h-16 text-primary mb-2" />
+                  )}
+                  <div>
+                    <p className="font-semibold text-sm">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <Upload className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1">Drop Footage Here</h3>
+                  <p className="text-sm text-muted-foreground mb-4">or click to browse from your computer</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+                    <Video className="w-4 h-4" />
+                    <span>MP4, AVI, MOV up to 500MB</span>
+                  </div>
+                </>
+              )}
+            </div>
           </Card>
 
           <Card>
@@ -197,20 +251,24 @@ export default function UploadsPage() {
               </div>
               {isUploading && (
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>Uploading file...</span>
+                  <div className="flex justify-between text-xs mb-1 font-medium">
+                    <span className="text-primary animate-pulse">Uploading to AI Engine...</span>
                     <span>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
+                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden border border-border">
                     <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300" 
+                      className="bg-primary h-full transition-all duration-300 ease-out" 
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
                 </div>
               )}
-              <Button className="w-full mt-4" disabled={isUploading} onClick={handleFileDrop}>
-                <Upload className="w-4 h-4 mr-2" />
+              <Button 
+                className="w-full mt-4" 
+                disabled={!selectedFile || isUploading} 
+                onClick={handleUploadSubmit}
+              >
+                <Play className="w-4 h-4 mr-2" />
                 {isUploading ? "Uploading..." : "Upload & Analyze Video"}
               </Button>
             </CardContent>
