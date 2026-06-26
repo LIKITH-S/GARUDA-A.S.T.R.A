@@ -44,7 +44,8 @@ export default function MissingPersonsPage() {
         lastSeen: p.last_seen_location || 'Unknown',
         date: new Date(p.created_at).toLocaleDateString(),
         status: p.status,
-        priority: p.priority
+        priority: p.priority,
+        photoPath: p.photo_path || null,
       }))
       setPersons(mapped)
     } catch (e) {
@@ -142,10 +143,18 @@ export default function MissingPersonsPage() {
             )}>
               <div className="h-48 bg-slate-800 flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[1]"></div>
-                 <div className="text-muted-foreground flex flex-col items-center gap-2 opacity-20">
-                   <UserSearch className="w-12 h-12" />
-                   <span className="text-[10px] uppercase tracking-widest font-bold">Encrypted Archive</span>
-                 </div>
+                 {person.photoPath ? (
+                   <img
+                     src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'}/${person.photoPath}`}
+                     alt={person.name}
+                     className="w-full h-full object-cover"
+                   />
+                 ) : (
+                   <div className="text-muted-foreground flex flex-col items-center gap-2 opacity-20">
+                     <UserSearch className="w-12 h-12" />
+                     <span className="text-[10px] uppercase tracking-widest font-bold">No Photo</span>
+                   </div>
+                 )}
                  <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
                     <Badge variant={person.priority === 'URGENT' ? 'destructive' : person.priority === 'High' ? 'warning' : 'secondary'}>
                       {person.priority}

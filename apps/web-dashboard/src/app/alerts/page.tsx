@@ -52,25 +52,25 @@ export default function AlertsPage() {
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc') // newest first by default
   const { lastMessage } = useWebSocket()
 
-  const fetchAlerts = useCallback(async () => {
+  const fetchAlerts = useCallback(async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const data = await getAlerts()
       setAlerts(data.map(mapAlert))
     } catch (err) {
       console.error('Failed to fetch alerts', err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   // Initial load — defer slightly so auth token is available
   useEffect(() => {
-    const timer = setTimeout(fetchAlerts, 100)
+    const timer = setTimeout(() => fetchAlerts(false), 100)
     return () => clearTimeout(timer)
   }, [fetchAlerts])
 
-  // Real-time update: prepend alert from WS immediately, then re-fetch full data
+  // Real-time update: prepend alert from WS immediately, then silently re-fetch full data
   useEffect(() => {
     if (lastMessage && lastMessage.event === 'possible_match_detected') {
       const d = lastMessage.data
@@ -81,6 +81,7 @@ export default function AlertsPage() {
         caseNumber: '—',
         confidence: String(d.confidence),
         status: 'Pending',
+        rawTime: new Date().toISOString(),
         time: new Date().toLocaleTimeString(),
         camera: String(d.camera_id).substring(0, 8),
         imagePath: null,
@@ -90,8 +91,8 @@ export default function AlertsPage() {
         if (prev.find(a => a.id === optimistic.id)) return prev
         return [optimistic, ...prev]
       })
-      // Then fetch real data to replace optimistic entry with full details
-      setTimeout(fetchAlerts, 800)
+      // Silent background refresh to replace optimistic entry with full data
+      setTimeout(() => fetchAlerts(true), 800)
     }
   }, [lastMessage, fetchAlerts])
 
@@ -147,7 +148,7 @@ export default function AlertsPage() {
               : <ArrowUp className="w-4 h-4 mr-2" />}
             {sortDir === 'desc' ? 'Newest First' : 'Oldest First'}
           </Button>
-          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={fetchAlerts}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => fetchAlerts(false)}>
             <Filter className="w-4 h-4 mr-2" />
             Refresh
           </Button>

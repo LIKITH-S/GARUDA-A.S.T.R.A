@@ -139,9 +139,17 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <WebSocketProvider>
-        <ClientLayoutContent>{children}</ClientLayoutContent>
-      </WebSocketProvider>
+      <ClientLayoutBridge>{children}</ClientLayoutBridge>
     </AuthProvider>
+  )
+}
+
+/** Bridge component that reads auth context and passes it to WebSocketProvider */
+function ClientLayoutBridge({ children }: { children: React.ReactNode }) {
+  const { token, logout } = useAuth()
+  return (
+    <WebSocketProvider token={token} onAuthExpired={logout}>
+      <ClientLayoutContent>{children}</ClientLayoutContent>
+    </WebSocketProvider>
   )
 }
