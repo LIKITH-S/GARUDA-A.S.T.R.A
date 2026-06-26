@@ -182,3 +182,11 @@ export function uploadFootageWithProgress(
     xhr.send(formData)
   })
 }
+
+export async function analyzeVideo(id: string) {
+  return fetchApi(`/uploads/${id}/analyze`, { method: 'POST' })
+}
+
+export async function batchAnalyzeVideos() {
+  return fetchApi('/uploads/batch-analyze', { method: 'POST' })
+}
