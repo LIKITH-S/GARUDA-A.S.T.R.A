@@ -64,18 +64,27 @@ class ConnectionManager:
 
     async def broadcast_to_admins(self, message: dict):
         """Broadcasts to all admins (e.g. system health metrics)."""
-        for connection in self.active_admins.values():
-            await connection.send_json(message)
+        for connection in list(self.active_admins.values()):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
 
     async def broadcast_to_dispatchers(self, message: dict):
         """Broadcasts to all dispatchers (e.g. new global alerts)."""
-        for connection in self.active_dispatchers.values():
-            await connection.send_json(message)
+        for connection in list(self.active_dispatchers.values()):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
 
     async def broadcast_to_patrols(self, message: dict):
         """Broadcasts to all patrol units."""
-        for connection in self.active_patrols.values():
-            await connection.send_json(message)
+        for connection in list(self.active_patrols.values()):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
 
     async def broadcast_global_alert(self, message: dict):
         """

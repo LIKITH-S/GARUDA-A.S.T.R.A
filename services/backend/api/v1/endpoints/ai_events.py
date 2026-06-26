@@ -13,6 +13,12 @@ import uuid
 import os
 from datetime import datetime
 from pathlib import Path
+import cv2
+import numpy as np
+
+from services.ai.detection.face_detection import FaceDetector
+from services.ai.detection.face_cropper import FaceCropper
+from services.ai.detection.preprocessing import Preprocessor
 
 router = APIRouter()
 
@@ -29,19 +35,6 @@ async def ingest_ai_event(
     """
     image_bytes = await image.read()
     
-    # Save the incoming image to a local directory
-    upload_dir = Path("services/backend/uploads/detections")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    
-    now_str = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"{now_str}_lat{location_lat}_lng{location_lng}.jpg"
-    file_path = upload_dir / filename
-    
-    with open(file_path, "wb") as f:
-        f.write(image_bytes)
-        
-    relative_path = f"uploads/detections/{filename}"
-        
     # Fetch all active missing persons with embeddings
     result = await db.execute(
         select(MissingPerson).where(
@@ -54,60 +47,96 @@ async def ingest_ai_event(
     # Format database for DeepFace matcher
     database = []
     for p in active_persons:
-        # face_embedding should be a list of floats (JSON decoded automatically by SQLAlchemy)
         database.append({"id": p.id, "embedding": p.face_embedding})
         
-    # Process with AI module
-    target_embedding = generate_embedding(image_bytes)
-    if not target_embedding:
-        return {"status": "success", "message": "No face embedding could be generated from the image."}
+    # Process with Detection module
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if frame is None:
+        return {"status": "error", "message": "Invalid image format"}
+
+    faces = FaceDetector.detect_faces(frame)
+    if not faces:
+        return {"status": "success", "message": "No faces detected in the image."}
+
+    upload_dir = Path("services/backend/uploads/detections")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    now_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    
+    events_created = []
+    
+    for idx, face in enumerate(faces):
+        area = face["facial_area"]
+        crop = FaceCropper.crop_face(frame, area)
         
-    match_found, missing_person_id, confidence = get_best_match(target_embedding, database)
+        if crop is None or crop.size == 0:
+            continue
+            
+        preprocessed_bytes = Preprocessor.preprocess_face(crop)
+        if not preprocessed_bytes:
+            continue
+            
+        # Save the cropped face image
+        filename = f"{camera_id}_{now_str}_{location_lat}_{location_lng}_{idx}.jpg"
+        file_path = upload_dir / filename
+        with open(file_path, "wb") as f:
+            f.write(preprocessed_bytes)
+            
+        relative_path = f"uploads/detections/{filename}"
+
+        # Process with Recognition module
+        target_embedding = generate_embedding(preprocessed_bytes)
+        if not target_embedding:
+            continue
+            
+        match_found, missing_person_id, confidence = get_best_match(target_embedding, database)
+        
+        if match_found:
+            event = DetectionEvent(
+                id=str(uuid.uuid4()),
+                camera_id=camera_id,
+                person_id=missing_person_id,
+                confidence_score=confidence,
+                timestamp=datetime.utcnow(),
+                match_type="facial_recognition",
+                image_path=relative_path
+            )
+            db.add(event)
+            await db.commit()
+            await db.refresh(event)
+            
+            alert = Alert(
+                id=str(uuid.uuid4()),
+                missing_person_id=missing_person_id,
+                detection_event_id=event.id,
+                status="pending"
+            )
+            db.add(alert)
+            await db.commit()
+            await db.refresh(alert)
+            
+            # Broadcast to Admin & Dispatcher via WebSocket
+            payload = {
+                "event": "possible_match_detected",
+                "data": {
+                    "alert_id": str(alert.id),
+                    "missing_person_id": str(missing_person_id),
+                    "camera_id": str(camera_id),
+                    "confidence": confidence,
+                    "lat": location_lat,
+                    "lng": location_lng
+                }
+            }
+            await manager.broadcast_to_dispatchers(payload)
+            await manager.broadcast_to_admins(payload)
+            
+            events_created.append({"event_id": event.id, "alert_id": alert.id})
     
-    if not match_found:
-        return {"status": "success", "message": "No match found"}
+    if not events_created:
+        return {"status": "success", "message": "Faces detected, but no match found"}
     
-    event = DetectionEvent(
-        id=str(uuid.uuid4()),
-        camera_id=camera_id,
-        person_id=missing_person_id,
-        confidence_score=confidence,
-        timestamp=datetime.utcnow(),
-        match_type="facial_recognition",
-        image_path=relative_path
-    )
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    
-    alert = Alert(
-        id=str(uuid.uuid4()),
-        missing_person_id=missing_person_id,
-        detection_event_id=event.id,
-        status="pending"
-    )
-    db.add(alert)
-    await db.commit()
-    await db.refresh(alert)
-    
-    # Broadcast to Admin & Dispatcher via WebSocket
-    payload = {
-        "event": "possible_match_detected",
-        "data": {
-            "alert_id": str(alert.id),
-            "missing_person_id": str(missing_person_id),
-            "camera_id": str(camera_id),
-            "confidence": confidence,
-            "lat": location_lat,
-            "lng": location_lng
-        }
-    }
-    
-    # Broadcast to dashboard only (admin + dispatcher) — mobile gets alerted only after dispatcher confirms
-    await manager.broadcast_to_dispatchers(payload)
-    await manager.broadcast_to_admins(payload)
-    
-    return {"status": "success", "event_id": event.id, "alert_id": alert.id}
+    return {"status": "success", "matches": events_created}
 
 
 @router.post("/test-alert")
@@ -116,24 +145,16 @@ async def test_alert(db: AsyncSession = Depends(deps.get_db)):
     Test endpoint to simulate a positive match alert for frontend testing.
     """
     # Fetch a random active missing person
+    from sqlalchemy.sql.expression import func
     result = await db.execute(
-        select(MissingPerson).where(MissingPerson.status == "Reported").limit(1)
+        select(MissingPerson).where(MissingPerson.status == "Reported").order_by(func.random()).limit(1)
     )
     person = result.scalars().first()
     
     if not person:
-        # Create a mock person if none exists
-        person_id = str(uuid.uuid4())
-        person = MissingPerson(
-            id=person_id,
-            case_number=f"TEST-{uuid.uuid4().hex[:8]}",
-            full_name="Test Missing Person",
-            status="Reported"
-        )
-        db.add(person)
-        await db.commit()
-    else:
-        person_id = person.id
+        raise HTTPException(status_code=404, detail="No reported missing persons found to create a test alert.")
+    
+    person_id = person.id
         
     cam_result = await db.execute(select(CameraFeed).limit(1))
     camera = cam_result.scalars().first()
