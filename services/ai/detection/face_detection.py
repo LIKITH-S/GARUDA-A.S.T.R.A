@@ -19,8 +19,10 @@ class FaceDetector:
     def _initialize_model(cls):
         try:
             from ultralytics import YOLO
+            import torch
+            torch.set_num_threads(1) # Prevent OpenMP Segfault in background threads
         except ImportError:
-            logger.warning("Ultralytics is not installed. Face detection will fail.")
+            logger.warning("Ultralytics or Torch is not installed. Face detection will fail.")
             return
 
         import httpx
