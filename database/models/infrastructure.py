@@ -24,3 +24,13 @@ class CameraFeed(Base, UUIDMixin, TimestampMixin):
     location_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("locations.id"))
     
     detection_events: Mapped[List["DetectionEvent"]] = relationship(back_populates="camera_feed")
+
+class VideoFootage(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "video_footages"
+
+    filename: Mapped[str] = mapped_column(String(255))
+    file_path: Mapped[str] = mapped_column(String(1024))
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    camera_id: Mapped[Optional[str]] = mapped_column(String(255))
+    sector: Mapped[Optional[str]] = mapped_column(String(255))
+    priority: Mapped[Optional[str]] = mapped_column(String(50), default="Normal")
