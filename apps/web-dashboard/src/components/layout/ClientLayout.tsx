@@ -20,6 +20,29 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
   
   // Audio context ref
   const audioContextRef = useRef<AudioContext | null>(null)
+
+  // Pre-warm AudioContext on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume()
+      }
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+      document.removeEventListener('keydown', unlock)
+    }
+    document.addEventListener('click', unlock)
+    document.addEventListener('touchstart', unlock)
+    document.addEventListener('keydown', unlock)
+    return () => {
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+      document.removeEventListener('keydown', unlock)
+    }
+  }, [])
   
   // Don't show sidebar/topbar on login page
   const isLoginPage = pathname === '/login'
@@ -39,15 +62,10 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
   // Global alert sound
   useEffect(() => {
     if (lastMessage && lastMessage.event === 'possible_match_detected') {
-      try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-        }
-        const ctx = audioContextRef.current
-        if (ctx.state === 'suspended') {
-          ctx.resume()
-        }
-        
+      const ctx = audioContextRef.current
+      if (!ctx) return // Not yet unlocked by user interaction
+      
+      const play = () => {
         const playBeep = (freq: number, startTime: number, duration: number) => {
           const osc = ctx.createOscillator()
           const gain = ctx.createGain()
@@ -60,13 +78,15 @@ export function ClientLayoutContent({ children }: { children: React.ReactNode })
           osc.start(startTime)
           osc.stop(startTime + duration)
         }
-        
         const now = ctx.currentTime
         playBeep(880, now, 0.15)
         playBeep(1108, now + 0.2, 0.3)
-        
-      } catch (e) {
-        console.error('Failed to play alert sound', e)
+      }
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(play).catch(e => console.error('Audio resume failed', e))
+      } else {
+        try { play() } catch (e) { console.error('Failed to play alert sound', e) }
       }
     }
   }, [lastMessage])
