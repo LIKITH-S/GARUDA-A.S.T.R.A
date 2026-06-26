@@ -46,7 +46,6 @@ class DispatchService:
 
         for unit in units:
             assignment = Assignment(
-                id=str(uuid.uuid4()),
                 dispatch_unit_id=unit.id,
                 alert_id=alert.id,
                 status="Assigned"
@@ -63,8 +62,8 @@ class DispatchService:
             db.add(assignment)
             assignments.append((unit, officer, assignment))
 
-        await db.commit()
-        logger.info(f"Dispatched Alert {alert.id} to {len(assignments)} DB unit(s).")
+        # NOTE: Do NOT commit here — the calling endpoint is responsible for commit
+        logger.info(f"Prepared dispatch for Alert {alert.id} to {len(assignments)} DB unit(s).")
         return assignments
 
 dispatch_service = DispatchService()

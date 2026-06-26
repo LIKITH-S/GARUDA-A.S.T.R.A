@@ -44,7 +44,7 @@ async def verify_alert(
     Dispatcher verifies a match. 
     This will trigger the Nearest Patrol automated assignment.
     """
-    if current_user.role.name not in ["admin", "dispatcher"]:
+    if current_user.role.name not in ["admin", "dispatcher", "officer"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     result = await db.execute(
@@ -90,7 +90,7 @@ async def reject_alert(
     current_user: User = Depends(deps.get_current_user),
 ):
     """Dispatcher rejects a match as a false positive."""
-    if current_user.role.name not in ["admin", "dispatcher"]:
+    if current_user.role.name not in ["admin", "dispatcher", "officer"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     result = await db.execute(

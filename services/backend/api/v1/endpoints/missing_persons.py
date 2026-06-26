@@ -31,7 +31,6 @@ async def create_missing_person(
     case_number = f"MP-{str(uuid.uuid4())[:8].upper()}"
 
     db_person = MissingPerson(
-        id=str(uuid.uuid4()),
         case_number=case_number,
         full_name=person_in.full_name,
         age=person_in.age,
