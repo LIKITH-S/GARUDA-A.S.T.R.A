@@ -8,15 +8,7 @@ logger = logging.getLogger(__name__)
 
 import os
 
-import httpx
-import torch
 
-try:
-    from ultralytics import YOLO
-    ULTRALYTICS_AVAILABLE = True
-except Exception as e:
-    logger.warning(f"Ultralytics is not installed. Face detection will fail. Error: {e}")
-    ULTRALYTICS_AVAILABLE = False
 
 class FaceDetector:
     """Service for detecting faces in image frames."""
@@ -25,9 +17,13 @@ class FaceDetector:
 
     @classmethod
     def _initialize_model(cls):
-        if not ULTRALYTICS_AVAILABLE:
+        try:
+            from ultralytics import YOLO
+        except ImportError:
+            logger.warning("Ultralytics is not installed. Face detection will fail.")
             return
-            
+
+        import httpx
         engine = "cpu"
         try:
             # Sync fetch settings from backend
@@ -50,7 +46,6 @@ class FaceDetector:
             cls._current_engine = "gpu"
         else:
             logger.info("Initializing YOLOv8-face on CPU (Optimized)...")
-            torch.set_num_threads(4) # Enforce 4 threads for 4 OCPU minimum spec
             
             # Export to ONNX if it doesn't exist
             if not os.path.exists(onnx_path) and os.path.exists(model_path):
