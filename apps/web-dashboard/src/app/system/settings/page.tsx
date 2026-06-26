@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
+import { getSettings, updateSettings } from "@/lib/api"
 
 export default function SettingsPage() {
   const { toast } = useToast()
@@ -21,8 +22,7 @@ export default function SettingsPage() {
   const [processingEngine, setProcessingEngine] = useState('cpu')
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/settings/')
-      .then(res => res.json())
+    getSettings()
       .then(data => {
         if (data) {
           setThreshold(data.detection_threshold ? Math.round(data.detection_threshold * 100) : 45)
@@ -36,24 +36,15 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/settings/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          detection_threshold: threshold / 100.0,
-          face_extraction_enabled: faceExtraction,
-          sound_alerts_enabled: notifications,
-          processing_engine: processingEngine
-        })
+      await updateSettings({
+        detection_threshold: threshold / 100.0,
+        face_extraction_enabled: faceExtraction,
+        sound_alerts_enabled: notifications,
+        processing_engine: processingEngine
       })
-      
-      if (response.ok) {
-        toast('Settings saved successfully', 'success')
-      } else {
-        toast('Failed to save settings', 'error')
-      }
+      toast('Settings saved successfully', 'success')
     } catch (err) {
-      toast('Network error saving settings', 'error')
+      toast('Failed to save settings', 'error')
     }
   }
 

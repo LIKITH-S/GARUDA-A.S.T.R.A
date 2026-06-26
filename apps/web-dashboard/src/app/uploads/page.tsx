@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
+import { uploadFootage, uploadFootageWithProgress, getUploads } from "@/lib/api"
 
 export default function UploadsPage() {
   const { toast } = useToast()
@@ -24,16 +25,48 @@ export default function UploadsPage() {
   const [selectedPriority, setSelectedPriority] = useState('High')
   const [cameraId, setCameraId] = useState('')
   const [sector, setSector] = useState('Sector Alpha (Central)')
+  const [uploads, setUploads] = useState<any[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  
+  const fetchUploads = async () => {
+    try {
+      const data = await getUploads()
+      setUploads(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    fetchUploads()
+    const interval = setInterval(fetchUploads, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleFileDrop = () => {
     fileInputRef.current?.click()
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files && files.length > 0) {
-      toast(`${files.length} file(s) added to upload queue`, 'success')
+    if (!files || files.length === 0) return
+    
+    setIsUploading(true)
+    for (let i = 0; i < files.length; i++) {
+      try {
+        setUploadProgress(0)
+        await uploadFootageWithProgress(files[i], cameraId, sector, selectedPriority, (percent) => {
+          setUploadProgress(percent)
+        })
+        toast(`File ${files[i].name} uploaded! Processing started.`, 'success')
+      } catch (err) {
+        toast(`Failed to upload ${files[i].name}`, 'error')
+      }
     }
+    setIsUploading(false)
+    setUploadProgress(0)
+    fetchUploads()
   }
 
   return (
@@ -82,11 +115,36 @@ export default function UploadsPage() {
               <CardDescription>Recently added files awaiting processing</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="flex flex-col items-center justify-center py-8 text-center">
-                 <Cloud className="w-8 h-8 text-muted-foreground/30 mb-3" />
-                 <p className="text-sm text-muted-foreground">No files in the upload queue.</p>
-                 <p className="text-xs text-muted-foreground/60 mt-1">Drop files above to start processing.</p>
-               </div>
+               {uploads.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-8 text-center">
+                   <Cloud className="w-8 h-8 text-muted-foreground/30 mb-3" />
+                   <p className="text-sm text-muted-foreground">No files in the upload queue.</p>
+                   <p className="text-xs text-muted-foreground/60 mt-1">Drop files above to start processing.</p>
+                 </div>
+               ) : (
+                 <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                   {uploads.map(u => (
+                     <div key={u.id} className="flex items-center justify-between p-3 rounded-md bg-secondary/30 border border-border">
+                       <div className="flex items-center gap-3 overflow-hidden">
+                         {u.status === 'COMPLETED' ? (
+                           <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                         ) : u.status === 'ERROR' ? (
+                           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                         ) : (
+                           <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0" />
+                         )}
+                         <div className="truncate">
+                           <p className="text-sm font-medium truncate">{u.filename}</p>
+                           <p className="text-xs text-muted-foreground">{new Date(u.uploaded_at).toLocaleString()}</p>
+                         </div>
+                       </div>
+                       <Badge variant={u.status === 'COMPLETED' ? 'default' : u.status === 'ERROR' ? 'destructive' : 'secondary'}>
+                         {u.status}
+                       </Badge>
+                     </div>
+                   ))}
+                 </div>
+               )}
             </CardContent>
           </Card>
         </div>
@@ -137,9 +195,23 @@ export default function UploadsPage() {
                   ))}
                 </div>
               </div>
-              <Button className="w-full mt-4" onClick={() => toast('AI scan queued for processing...', 'success')}>
-                <Play className="w-4 h-4 mr-2" />
-                Initialize AI Scan
+              {isUploading && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span>Uploading file...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <Button className="w-full mt-4" disabled={isUploading} onClick={handleFileDrop}>
+                <Upload className="w-4 h-4 mr-2" />
+                {isUploading ? "Uploading..." : "Upload & Analyze Video"}
               </Button>
             </CardContent>
           </Card>

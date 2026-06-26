@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
 function getHeaders() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('astra_token') : null
@@ -85,4 +85,100 @@ export async function getStats() {
 
 export async function getUsers() {
   return fetchApi('/admin/users')
+}
+
+export async function getSettings() {
+  return fetchApi('/settings/')
+}
+
+export async function updateSettings(data: any) {
+  return fetchApi('/settings/', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export async function uploadFootage(file: File, cameraId: string, sector: string, priority: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (cameraId) formData.append('camera_id', cameraId)
+  if (sector) formData.append('sector', sector)
+  if (priority) formData.append('priority', priority)
+  
+  const token = typeof window !== 'undefined' ? localStorage.getItem('astra_token') : null
+  const response = await fetch(`${API_URL}/uploads/`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: formData,
+  })
+  
+  if (response.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('astra_token')
+    window.location.href = '/login'
+    throw new Error('Unauthorized - Redirecting to login')
+  }
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
+export async function getUploads() {
+  return fetchApi('/uploads/')
+}
+
+export function uploadFootageWithProgress(
+  file: File, 
+  cameraId: string, 
+  sector: string, 
+  priority: string,
+  onProgress: (percent: number) => void
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (cameraId) formData.append('camera_id', cameraId)
+    if (sector) formData.append('sector', sector)
+    if (priority) formData.append('priority', priority)
+    
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_URL}/uploads/`)
+    
+    const token = typeof window !== 'undefined' ? localStorage.getItem('astra_token') : null
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100)
+        onProgress(percentComplete)
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 401 && typeof window !== 'undefined') {
+        localStorage.removeItem('astra_token')
+        window.location.href = '/login'
+        reject(new Error('Unauthorized - Redirecting to login'))
+        return
+      }
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText))
+      } else {
+        reject(new Error(`API error: ${xhr.status} ${xhr.statusText}`))
+      }
+    }
+
+    xhr.onerror = () => {
+      reject(new Error('Network error occurred during upload'))
+    }
+
+    xhr.send(formData)
+  })
 }
