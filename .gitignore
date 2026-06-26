@@ -134,3 +134,6 @@ create_test_assets.py
 run_validation_tests.py
 test_*.jpg
 test_*.mp4
+
+# Project Report
+docs/report/

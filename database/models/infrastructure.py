@@ -34,3 +34,4 @@ class VideoFootage(Base, UUIDMixin, TimestampMixin):
     camera_id: Mapped[Optional[str]] = mapped_column(String(255))
     sector: Mapped[Optional[str]] = mapped_column(String(255))
     priority: Mapped[Optional[str]] = mapped_column(String(50), default="Normal")
+    progress: Mapped[float] = mapped_column(Float, default=0.0)

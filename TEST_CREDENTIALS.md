@@ -18,3 +18,8 @@ Here are the seeded test users for each role:
 - **Email**: `officer2@astra.gov`
 - **Password**: `Password123!`
 
+### Patrol Officer Arjun (Patrol - App Only)
+- **Email**: `patrol@astra.gov`
+- **Password**: `Password123!`
+
+

@@ -47,7 +47,8 @@ async def seed():
         roles_data = [
             {"name": "admin", "permissions": "all"},
             {"name": "dispatcher", "permissions": "read,write,dispatch"},
-            {"name": "officer", "permissions": "read,update_status"}
+            {"name": "officer", "permissions": "read,update_status"},
+            {"name": "patrol", "permissions": "read,update_status"}
         ]
         
         role_map = {}
@@ -60,7 +61,8 @@ async def seed():
         # Create Dispatch Units
         unit1 = DispatchUnit(id=uuid.uuid4(), name="Chetak-1", status="Available", last_known_lat=12.9716, last_known_lng=77.5946)
         unit2 = DispatchUnit(id=uuid.uuid4(), name="Garuda-2", status="Available", last_known_lat=12.9352, last_known_lng=77.6245)
-        session.add_all([unit1, unit2])
+        unit3 = DispatchUnit(id=uuid.uuid4(), name="Chetak-3", status="Available", last_known_lat=12.9716, last_known_lng=77.5946)
+        session.add_all([unit1, unit2, unit3])
         await session.flush()
 
         # Users Data
@@ -94,6 +96,15 @@ async def seed():
                 "badge": "BADGE-202",
                 "unit_type": "K9 Unit",
                 "unit": unit2
+            },
+            {
+                "email": "patrol@astra.gov",
+                "password": "Password123!",
+                "full_name": "Patrol Officer Arjun",
+                "role_name": "patrol",
+                "badge": "BADGE-303",
+                "unit_type": "Patrol",
+                "unit": unit3
             }
         ]
         
