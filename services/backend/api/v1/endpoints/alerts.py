@@ -11,8 +11,59 @@ from database.models.auth import User
 from database.models.ai_events import Alert, DetectionEvent
 from services.backend.schemas.alert import AlertRead
 from services.backend.services.dispatch_service import dispatch_service
+from database.models.registry import MissingPerson
 
 router = APIRouter()
+
+@router.get("/stats")
+async def get_stats(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """Return aggregated statistics for the dashboard."""
+    from sqlalchemy import func as sa_func
+
+    # Alert counts
+    alert_result = await db.execute(select(sa_func.count(Alert.id)))
+    total_alerts = alert_result.scalar() or 0
+
+    pending_result = await db.execute(
+        select(sa_func.count(Alert.id)).where(Alert.status.in_(["pending", "Pending"]))
+    )
+    pending_alerts = pending_result.scalar() or 0
+
+    verified_result = await db.execute(
+        select(sa_func.count(Alert.id)).where(Alert.status == "Verified")
+    )
+    verified_alerts = verified_result.scalar() or 0
+
+    rejected_result = await db.execute(
+        select(sa_func.count(Alert.id)).where(Alert.status == "Rejected False Positive")
+    )
+    rejected_alerts = rejected_result.scalar() or 0
+
+    # Missing persons counts
+    persons_result = await db.execute(select(sa_func.count(MissingPerson.id)))
+    total_persons = persons_result.scalar() or 0
+
+    found_result = await db.execute(
+        select(sa_func.count(MissingPerson.id)).where(MissingPerson.status == "Found")
+    )
+    found_persons = found_result.scalar() or 0
+
+    # Detection events count
+    events_result = await db.execute(select(sa_func.count(DetectionEvent.id)))
+    total_events = events_result.scalar() or 0
+
+    return {
+        "total_alerts": total_alerts,
+        "pending_alerts": pending_alerts,
+        "verified_alerts": verified_alerts,
+        "rejected_alerts": rejected_alerts,
+        "total_missing_persons": total_persons,
+        "found_persons": found_persons,
+        "total_detection_events": total_events,
+    }
 
 @router.get("/", response_model=List[AlertRead])
 async def read_alerts(
