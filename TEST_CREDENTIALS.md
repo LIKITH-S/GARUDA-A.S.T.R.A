@@ -10,11 +10,11 @@ Here are the seeded test users for each role:
 - **Email**: `dispatcher@astra.gov`
 - **Password**: `Password123!`
 
-### Officer John Doe (Officer)
+### Inspector Vikram Rathore (Officer)
 - **Email**: `officer1@astra.gov`
 - **Password**: `Password123!`
 
-### Officer Jane Smith (Officer)
+### Inspector Priya Singh (Officer)
 - **Email**: `officer2@astra.gov`
 - **Password**: `Password123!`
 

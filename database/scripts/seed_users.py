@@ -58,8 +58,8 @@ async def seed():
         await session.flush()
         
         # Create Dispatch Units
-        unit1 = DispatchUnit(id=uuid.uuid4(), name="Bravo-1", status="Available", last_known_lat=12.9716, last_known_lng=77.5946)
-        unit2 = DispatchUnit(id=uuid.uuid4(), name="Alpha-2", status="Available", last_known_lat=12.9352, last_known_lng=77.6245)
+        unit1 = DispatchUnit(id=uuid.uuid4(), name="Chetak-1", status="Available", last_known_lat=12.9716, last_known_lng=77.5946)
+        unit2 = DispatchUnit(id=uuid.uuid4(), name="Garuda-2", status="Available", last_known_lat=12.9352, last_known_lng=77.6245)
         session.add_all([unit1, unit2])
         await session.flush()
 
@@ -80,7 +80,7 @@ async def seed():
             {
                 "email": "officer1@astra.gov",
                 "password": "Password123!",
-                "full_name": "Officer John Doe",
+                "full_name": "Inspector Vikram Rathore",
                 "role_name": "officer",
                 "badge": "BADGE-101",
                 "unit_type": "Patrol",
@@ -89,7 +89,7 @@ async def seed():
             {
                 "email": "officer2@astra.gov",
                 "password": "Password123!",
-                "full_name": "Officer Jane Smith",
+                "full_name": "Inspector Priya Singh",
                 "role_name": "officer",
                 "badge": "BADGE-202",
                 "unit_type": "K9 Unit",
@@ -124,7 +124,7 @@ async def seed():
                     unit_type=u_data["unit_type"],
                     dispatch_unit_id=u_data["unit"].id,
                     status="Off Duty",
-                    contact_info="123-456-7890"
+                    contact_info="9876543210"
                 )
                 session.add(officer)
                 officers.append(officer)
@@ -135,32 +135,32 @@ async def seed():
             markdown_content += f"- **Password**: `{u_data['password']}`\n\n"
         
         # Seed Locations
-        loc1 = Location(id=uuid.uuid4(), name="Main Street Junction", latitude=12.9716, longitude=77.5946, address="123 Main St")
-        loc2 = Location(id=uuid.uuid4(), name="Central Park Entrance", latitude=12.9352, longitude=77.6245, address="Central Park")
+        loc1 = Location(id=uuid.uuid4(), name="MG Road Junction", latitude=12.9716, longitude=77.5946, address="MG Road, Bengaluru")
+        loc2 = Location(id=uuid.uuid4(), name="Cubbon Park Entrance", latitude=12.9352, longitude=77.6245, address="Cubbon Park, Bengaluru")
         session.add_all([loc1, loc2])
         await session.flush()
         
         # Seed Cameras
-        cam1 = CameraFeed(id=uuid.uuid4(), name="Main Street Cam 1", location_id=loc1.id, status="Online", stream_url="rtsp://demo/1")
-        cam2 = CameraFeed(id=uuid.uuid4(), name="Central Park Cam 1", location_id=loc2.id, status="Online", stream_url="rtsp://demo/2")
+        cam1 = CameraFeed(id=uuid.uuid4(), name="MG Road Cam 1", location_id=loc1.id, status="Online", stream_url="rtsp://demo/1")
+        cam2 = CameraFeed(id=uuid.uuid4(), name="Cubbon Park Cam 1", location_id=loc2.id, status="Online", stream_url="rtsp://demo/2")
         session.add_all([cam1, cam2])
 
         # Seed Missing Persons
         mp1 = MissingPerson(
-            id=uuid.uuid4(), case_number="CAS-2026-001", full_name="Sarah Connor", age=28, gender="Female",
-            description="Wearing a red jacket.", last_seen_location="Central Park",
+            id=uuid.uuid4(), case_number="CAS-2026-001", full_name="Ananya Sharma", age=28, gender="Female",
+            description="Wearing a red jacket.", last_seen_location="Cubbon Park",
             last_seen_at=datetime.now(timezone.utc) - timedelta(days=1), priority="High", status="Reported"
         )
         mp2 = MissingPerson(
-            id=uuid.uuid4(), case_number="CAS-2026-002", full_name="John Smith", age=45, gender="Male",
-            description="Tall, wearing glasses.", last_seen_location="Main Street",
+            id=uuid.uuid4(), case_number="CAS-2026-002", full_name="Amit Patel", age=45, gender="Male",
+            description="Tall, wearing glasses.", last_seen_location="MG Road",
             last_seen_at=datetime.now(timezone.utc) - timedelta(hours=5), priority="Normal", status="Reported"
         )
         session.add_all([mp1, mp2])
 
         # Seed Incidents
         inc1 = Incident(
-            id=uuid.uuid4(), title="Robbery at Main Street", description="Armed robbery reported at convenience store.",
+            id=uuid.uuid4(), title="Robbery at MG Road", description="Armed robbery reported at convenience store.",
             severity="High", status="Active", 
             location_id=loc1.id
         )
