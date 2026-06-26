@@ -16,7 +16,7 @@ class FaceDetector:
     """Service for detecting faces in image frames."""
 
     @staticmethod
-    def detect_faces(frame: np.ndarray, threshold: float = 0.8) -> List[Dict[str, Any]]:
+    def detect_faces(frame: np.ndarray, threshold: float = 0.5) -> List[Dict[str, Any]]:
         """
         Detect faces in a frame using RetinaFace.
         
@@ -51,7 +51,13 @@ class FaceDetector:
                         "score": face_info.get("score", 0.0),
                         "landmarks": face_info.get("landmarks", {})
                     })
-                    
+            for face in faces:
+                x1,y1,x2,y2 = face["facial_area"]
+
+                width = x2-x1
+                height = y2-y1
+
+                print(width,height)
             return faces
         except Exception as e:
             logger.error(f"Error during face detection: {e}")

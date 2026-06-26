@@ -1,12 +1,12 @@
 import os
 import cv2
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 class VideoService:
     """Service for handling video file operations."""
 
     @staticmethod
-    def get_video_properties(video_path: str) -> Optional[Dict[str, Any]]:
+    def get_video_properties(video_path: Union[str, int]) -> Optional[Dict[str, Any]]:
         """
         Extracts properties from a video file.
         
@@ -20,7 +20,7 @@ class VideoService:
         Raises:
             FileNotFoundError: If the video file does not exist.
         """
-        if not os.path.exists(video_path):
+        if isinstance(video_path, str) and not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
             
         cap = cv2.VideoCapture(video_path)

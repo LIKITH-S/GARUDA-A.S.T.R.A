@@ -1,13 +1,13 @@
 import os
 import cv2
 import numpy as np
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, Union
 
 class FrameExtractor:
     """Service for extracting frames from videos with frame-skipping optimizations."""
 
     @staticmethod
-    def extract_frames(video_path: str, skip_interval: int = 5) -> Iterator[Tuple[np.ndarray, int]]:
+    def extract_frames(video_path: Union[str, int], skip_interval: int = 5) -> Iterator[Tuple[np.ndarray, int]]:
         """
         Extracts frames from a video, skipping frames according to skip_interval.
         
@@ -23,7 +23,7 @@ class FrameExtractor:
         Raises:
             FileNotFoundError: If the video file does not exist.
         """
-        if not os.path.exists(video_path):
+        if isinstance(video_path, str) and not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
             
         # Ensure skip_interval is at least 1

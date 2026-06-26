@@ -2,6 +2,9 @@ import cv2
 import sys
 import os
 
+# Suppress TensorFlow logging warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 from detection.video_service import VideoService
 from detection.frame_extractor import FrameExtractor
 from detection.face_detection import FaceDetector
@@ -9,16 +12,22 @@ from detection.face_cropper import FaceCropper
 from detection.preprocessing import Preprocessor
 
 def run_pipeline(video_path: str):
-    if not os.path.exists(video_path):
-        print(f"Error: Video file not found at {video_path}")
+    # Support webcam index by converting to int if possible
+    try:
+        source = int(video_path)
+    except ValueError:
+        source = video_path
+
+    if isinstance(source, str) and not os.path.exists(source):
+        print(f"Error: Video file not found at {source}")
         return
 
     print(f"--- 1. Analyzing Video ---")
-    props = VideoService.get_video_properties(video_path)
+    props = VideoService.get_video_properties(source)
     print(f"Properties: {props}")
 
     print(f"\n--- 2. Extracting Frames (Skip=5) ---")
-    frame_gen = FrameExtractor.extract_frames(video_path, skip_interval=5)
+    frame_gen = FrameExtractor.extract_frames(source, skip_interval=5)
     
     print("\nPress 'q' in the video window to stop the demo.")
     
