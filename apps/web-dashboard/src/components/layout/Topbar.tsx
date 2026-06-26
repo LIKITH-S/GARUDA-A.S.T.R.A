@@ -15,7 +15,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   useEffect(() => {
     const update = () => {
       const now = new Date()
-      setCurrentTime(now.toLocaleTimeString('en-US', { hour12: false, timeZone: 'UTC' }))
+      setCurrentTime(now.toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' }))
     }
     update()
     const interval = setInterval(update, 1000)
@@ -54,7 +54,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-muted-foreground">
           <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full border border-border">
             <Globe className="w-3 h-3 text-primary" />
-            <span>MISSION UTC: {currentTime || '—'}</span>
+            <span>SYSTEM TIME (IST): {currentTime || '—'}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full border border-border">
             <Shield className="w-3 h-3 text-green-500" />

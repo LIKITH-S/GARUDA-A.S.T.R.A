@@ -27,7 +27,7 @@ export default function MissingPersonsPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
-    full_name: '', age: '', gender: '', last_seen_location: '', priority: 'Normal'
+    full_name: '', age: '', gender: '', description: '', last_seen_location: '', last_seen_at: '', priority: 'Normal'
   })
   const [file, setFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -73,7 +73,9 @@ export default function MissingPersonsPage() {
     try {
       const newPerson = await createMissingPerson({
         ...formData,
-        age: parseInt(formData.age) || null
+        age: parseInt(formData.age) || null,
+        last_seen_at: formData.last_seen_at ? new Date(formData.last_seen_at).toISOString() : null,
+        description: formData.description || null
       })
       
       if (file) {
@@ -82,7 +84,7 @@ export default function MissingPersonsPage() {
       
       toast('New missing person registered and AI embedding generated', 'success')
       setIsModalOpen(false)
-      setFormData({ full_name: '', age: '', gender: '', last_seen_location: '', priority: 'Normal' })
+      setFormData({ full_name: '', age: '', gender: '', description: '', last_seen_location: '', last_seen_at: '', priority: 'Normal' })
       setFile(null)
       fetchPersons()
     } catch (err) {
@@ -240,16 +242,28 @@ export default function MissingPersonsPage() {
                      </select>
                    </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Last Seen Location</label>
-                  <input type="text" className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary"
-                    value={formData.last_seen_location} onChange={e => setFormData({...formData, last_seen_location: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Reference Photo *</label>
-                  <input required type="file" accept="image/*" ref={fileInputRef} onChange={e => setFile(e.target.files?.[0] || null)}
-                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 bg-secondary/30 rounded-md border border-border p-2" />
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <label className="text-xs font-medium text-muted-foreground">Last Seen Location</label>
+                     <input type="text" className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary"
+                       value={formData.last_seen_location} onChange={e => setFormData({...formData, last_seen_location: e.target.value})} />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-medium text-muted-foreground">Last Seen Date & Time</label>
+                     <input type="datetime-local" className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary"
+                       value={formData.last_seen_at} onChange={e => setFormData({...formData, last_seen_at: e.target.value})} />
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-muted-foreground">Physical Description</label>
+                   <textarea rows={3} placeholder="Height, build, clothing, distinguishing features..." className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary resize-none"
+                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-muted-foreground">Reference Photo *</label>
+                   <input required type="file" accept="image/*" ref={fileInputRef} onChange={e => setFile(e.target.files?.[0] || null)}
+                     className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 bg-secondary/30 rounded-md border border-border p-2" />
+                 </div>
                 <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
                   {isSubmitting ? 'Processing & Extracting Embedding...' : 'Register Case & Run AI Extraction'}
                 </Button>

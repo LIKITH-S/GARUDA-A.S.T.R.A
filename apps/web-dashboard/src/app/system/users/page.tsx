@@ -23,11 +23,11 @@ import {
 import { useToast } from "@/components/ui/Toast"
 
 const allUsers = [
-  { id: 'USR-001', name: 'John Doe', email: 'j.doe@astra.mission', role: 'Super Admin', status: 'Active', access: 'Level 4' },
-  { id: 'USR-002', name: 'Sarah Connor', email: 's.connor@astra.mission', role: 'Operator', status: 'Active', access: 'Level 2' },
-  { id: 'USR-003', name: 'James Smith', email: 'j.smith@astra.mission', role: 'Analyst', status: 'Away', access: 'Level 1' },
-  { id: 'USR-004', name: 'Elena Rodriguez', email: 'e.rodriguez@astra.mission', role: 'Lead Field Officer', status: 'Active', access: 'Level 3' },
-  { id: 'USR-005', name: 'Mark Wilson', email: 'm.wilson@astra.mission', role: 'Systems Engineer', status: 'Maintenance', access: 'Level 3' },
+  { id: 'USR-001', name: 'Vikram Rathore', email: 'v.rathore@astra.mission', role: 'Super Admin', status: 'Active', access: 'Level 4' },
+  { id: 'USR-002', name: 'Ananya Sharma', email: 'a.sharma@astra.mission', role: 'Operator', status: 'Active', access: 'Level 2' },
+  { id: 'USR-003', name: 'Rajesh Kumar', email: 'r.kumar@astra.mission', role: 'Analyst', status: 'Away', access: 'Level 1' },
+  { id: 'USR-004', name: 'Priya Singh', email: 'p.singh@astra.mission', role: 'Lead Field Officer', status: 'Active', access: 'Level 3' },
+  { id: 'USR-005', name: 'Arjun Mehta', email: 'a.mehta@astra.mission', role: 'Systems Engineer', status: 'Maintenance', access: 'Level 3' },
 ]
 
 export default function UsersPage() {
