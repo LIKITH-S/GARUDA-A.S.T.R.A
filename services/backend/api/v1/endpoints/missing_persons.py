@@ -1,4 +1,6 @@
 import uuid
+import os
+from pathlib import Path
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,6 +86,19 @@ async def upload_missing_person_image(
         raise HTTPException(status_code=404, detail="Missing person not found")
         
     image_bytes = await image.read()
+    
+    # Save the original mugshot to disk
+    upload_dir = Path("services/backend/uploads/missing_persons")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    filename = f"{person_id}.jpg"
+    file_path = upload_dir / filename
+    
+    with open(file_path, "wb") as f:
+        f.write(image_bytes)
+        
+    person.photo_path = f"uploads/missing_persons/{filename}"
+    
     embedding = generate_embedding(image_bytes)
     
     if not embedding:

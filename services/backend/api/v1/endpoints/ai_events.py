@@ -10,7 +10,9 @@ from services.ai.recognition.ranking_service import get_best_match
 from services.backend.api.v1.endpoints.websockets import manager
 import base64
 import uuid
+import os
 from datetime import datetime
+from pathlib import Path
 
 router = APIRouter()
 
@@ -26,6 +28,19 @@ async def ingest_ai_event(
     Ingest a detection event from an edge camera or mock engine.
     """
     image_bytes = await image.read()
+    
+    # Save the incoming image to a local directory
+    upload_dir = Path("services/backend/uploads/detections")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    now_str = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{now_str}_lat{location_lat}_lng{location_lng}.jpg"
+    file_path = upload_dir / filename
+    
+    with open(file_path, "wb") as f:
+        f.write(image_bytes)
+        
+    relative_path = f"uploads/detections/{filename}"
         
     # Fetch all active missing persons with embeddings
     result = await db.execute(
@@ -58,7 +73,8 @@ async def ingest_ai_event(
         person_id=missing_person_id,
         confidence_score=confidence,
         timestamp=datetime.utcnow(),
-        match_type="facial_recognition"
+        match_type="facial_recognition",
+        image_path=relative_path
     )
     db.add(event)
     await db.commit()
@@ -87,8 +103,9 @@ async def ingest_ai_event(
         }
     }
     
-    # Broadcast to ALL roles — admin, dispatcher, and patrol (officers on mobile)
-    await manager.broadcast_global_alert(payload)
+    # Broadcast to dashboard only (admin + dispatcher) — mobile gets alerted only after dispatcher confirms
+    await manager.broadcast_to_dispatchers(payload)
+    await manager.broadcast_to_admins(payload)
     
     return {"status": "success", "event_id": event.id, "alert_id": alert.id}
 
@@ -170,7 +187,8 @@ async def test_alert(db: AsyncSession = Depends(deps.get_db)):
         }
     }
     
-    # Broadcast to ALL roles — admin, dispatcher, and patrol (officers on mobile)
-    await manager.broadcast_global_alert(payload)
+    # Broadcast to dashboard only (admin + dispatcher) — mobile gets alerted only after dispatcher confirms
+    await manager.broadcast_to_dispatchers(payload)
+    await manager.broadcast_to_admins(payload)
     
     return {"status": "success", "event_id": event.id, "alert_id": alert.id, "message": "Test alert created and broadcasted"}
