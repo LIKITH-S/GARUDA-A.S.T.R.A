@@ -14,7 +14,8 @@ import {
   Cpu,
   Users,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Construction
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
@@ -23,14 +24,14 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Live Alerts', href: '/alerts', icon: Bell },
   { name: 'Surveillance Uploads', href: '/uploads', icon: Upload },
-  { name: 'Detection Logs', href: '/logs', icon: History },
+  { name: 'Detection Logs', href: '/logs', icon: History, premium: true },
   { name: 'Missing Persons', href: '/missing', icon: UserSearch },
   { name: 'Patrol Units', href: '/patrol', icon: ShieldAlert },
-  { name: 'Response Status', href: '/status', icon: CheckCircle2 },
+  { name: 'Response Status', href: '/status', icon: CheckCircle2, premium: true },
 ]
 
 const systemNavigation = [
-  { name: 'AI Services', href: '/system/services', icon: Cpu },
+  { name: 'AI Services', href: '/system/services', icon: Cpu, premium: true },
   { name: 'Users', href: '/system/users', icon: Users },
   { name: 'Settings', href: '/system/settings', icon: Settings },
 ]
@@ -72,7 +73,15 @@ export function Sidebar() {
                       <item.icon className="w-5 h-5" />
                       {item.name}
                     </div>
-                    {isActive && <ChevronRight className="w-4 h-4" />}
+                    <div className="flex items-center gap-1">
+                      {(item as any).premium && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                          <Construction className="w-2.5 h-2.5" />
+                          V2
+                        </span>
+                      )}
+                      {isActive && <ChevronRight className="w-4 h-4" />}
+                    </div>
                   </Link>
                 </li>
               )
@@ -102,7 +111,15 @@ export function Sidebar() {
                       <item.icon className="w-5 h-5" />
                       {item.name}
                     </div>
-                    {isActive && <ChevronRight className="w-4 h-4" />}
+                    <div className="flex items-center gap-1">
+                      {item.premium && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                          <Construction className="w-2.5 h-2.5" />
+                          V2
+                        </span>
+                      )}
+                      {isActive && <ChevronRight className="w-4 h-4" />}
+                    </div>
                   </Link>
                 </li>
               )

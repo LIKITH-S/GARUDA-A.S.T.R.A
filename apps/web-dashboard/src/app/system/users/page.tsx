@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -18,31 +18,56 @@ import {
   Shield, 
   Mail, 
   MoreVertical,
-  Key
+  Key,
+  Loader2
 } from 'lucide-react'
 import { useToast } from "@/components/ui/Toast"
-
-const allUsers = [
-  { id: 'USR-001', name: 'Vikram Rathore', email: 'v.rathore@astra.mission', role: 'Super Admin', status: 'Active', access: 'Level 4' },
-  { id: 'USR-002', name: 'Ananya Sharma', email: 'a.sharma@astra.mission', role: 'Operator', status: 'Active', access: 'Level 2' },
-  { id: 'USR-003', name: 'Rajesh Kumar', email: 'r.kumar@astra.mission', role: 'Analyst', status: 'Away', access: 'Level 1' },
-  { id: 'USR-004', name: 'Priya Singh', email: 'p.singh@astra.mission', role: 'Lead Field Officer', status: 'Active', access: 'Level 3' },
-  { id: 'USR-005', name: 'Arjun Mehta', email: 'a.mehta@astra.mission', role: 'Systems Engineer', status: 'Maintenance', access: 'Level 3' },
-]
+import { getUsers } from '@/lib/api'
 
 export default function UsersPage() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
+  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        const data = await getUsers()
+        setAllUsers(data)
+      } catch (err: any) {
+        console.error('Failed to fetch users:', err)
+        if (err.message?.includes('403') || err.message?.includes('Not enough privileges')) {
+          toast('Admin access required to view users', 'error')
+        } else {
+          toast('Failed to load users', 'error')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUsers()
+  }, [])
 
   const users = useMemo(() => {
     if (!searchQuery.trim()) return allUsers
     const q = searchQuery.toLowerCase()
-    return allUsers.filter(u =>
-      u.name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q)
+    return allUsers.filter((u: any) =>
+      (u.full_name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.role_name || '').toLowerCase().includes(q)
     )
-  }, [searchQuery])
+  }, [searchQuery, allUsers])
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin': return 'text-red-500'
+      case 'dispatcher': return 'text-yellow-500'
+      case 'officer': return 'text-blue-500'
+      default: return 'text-muted-foreground'
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -74,33 +99,38 @@ export default function UsersPage() {
            </div>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-3">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading personnel records...</span>
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Identity</TableHead>
                 <TableHead>Role / Assignment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Clearance</TableHead>
+                <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No personnel match your search.
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    {allUsers.length === 0 ? 'No users found or insufficient permissions.' : 'No personnel match your search.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
+                users.map((user: any) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-bold text-primary">
-                          {user.name.split(' ').map(n => n[0]).join('')}
+                          {(user.full_name || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{user.name}</p>
+                          <p className="text-sm font-medium">{user.full_name || 'Unknown'}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" />
                             {user.email}
@@ -110,23 +140,17 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                         <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                         <span className="text-sm">{user.role}</span>
+                         <Shield className={`w-3.5 h-3.5 ${getRoleBadgeColor(user.role_name)}`} />
+                         <span className="text-sm capitalize">{user.role_name || 'Unknown'}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.status === 'Active' ? 'success' : 'secondary'}>
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                       <div className="flex items-center gap-2 font-mono text-xs">
-                          <Key className="w-3.5 h-3.5 text-primary" />
-                          {user.access}
-                       </div>
+                      <span className="text-xs text-muted-foreground">
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => toast(`Actions for ${user.name} coming soon`, 'info')}>
+                      <Button variant="ghost" size="icon" onClick={() => toast(`Actions for ${user.full_name} coming soon`, 'info')}>
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </TableCell>
@@ -135,6 +159,7 @@ export default function UsersPage() {
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>

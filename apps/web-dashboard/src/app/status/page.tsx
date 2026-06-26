@@ -14,7 +14,7 @@ import {
   Plus
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { useToast } from "@/components/ui/Toast"
+import { PremiumLock } from '@/components/ui/PremiumLock'
 
 type Unit = {
   id: string;
@@ -36,31 +36,29 @@ const columns: Column[] = [
     id: 'standby',
     title: 'Standby / Ready',
     units: [
-      { id: 'P-12', location: 'Koramangala HQ', time: 'Since 14:00', type: 'General' },
-      { id: 'P-31', location: 'Jayanagar Depot', time: 'Since 15:20', type: 'Rapid' },
+      { id: 'P-██', location: '██████████', time: 'Since ██:██', type: 'General' },
+      { id: 'P-██', location: '██████████', time: 'Since ██:██', type: 'Rapid' },
     ]
   },
   {
     id: 'enroute',
     title: 'En Route',
     units: [
-      { id: 'P-09', location: 'Indiranagar', target: 'Commercial St.', time: 'E.T.A 4m', type: 'Rapid' },
-      { id: 'P-15', location: 'Hebbal', target: 'Airport T1', time: 'E.T.A 12m', type: 'Surv' },
+      { id: 'P-██', location: '██████████', target: '██████████', time: 'E.T.A ██m', type: 'Rapid' },
+      { id: 'P-██', location: '██████████', target: '██████████', time: 'E.T.A ██m', type: 'Surv' },
     ]
   },
   {
     id: 'onsite',
     title: 'On Site / Active',
     units: [
-      { id: 'P-04', location: 'MG Road Junction', task: 'Crowd Control', time: 'Active 22m', type: 'Surv' },
-      { id: 'P-22', location: 'Whitefield', task: 'Search Ops', time: 'Active 1h', type: 'Interceptor' },
+      { id: 'P-██', location: '██████████', task: '██████████', time: 'Active ██m', type: 'Surv' },
+      { id: 'P-██', location: '██████████', task: '██████████', time: 'Active ██h', type: 'Interceptor' },
     ]
   }
 ]
 
-export default function StatusPage() {
-  const { toast } = useToast()
-
+function StatusContent() {
   return (
     <div className="space-y-8 h-full flex flex-col">
       <div className="flex items-center justify-between">
@@ -69,10 +67,10 @@ export default function StatusPage() {
           <p className="text-muted-foreground">Tactical Kanban view of unit deployments and operational states.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => toast('Operational map coming soon', 'info')}>
+          <Button variant="outline" size="sm" disabled>
             Operational Map
           </Button>
-          <Button size="sm" onClick={() => toast('Incident creation form coming soon', 'info')}>
+          <Button size="sm" disabled>
             <Plus className="w-4 h-4 mr-2" />
             Create Incident
           </Button>
@@ -87,14 +85,14 @@ export default function StatusPage() {
                 <h3 className="font-bold text-sm uppercase tracking-wider">{column.title}</h3>
                 <Badge variant="secondary" className="bg-secondary text-[10px] h-5">{column.units.length}</Badge>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast(`${column.title} options coming soon`, 'info')}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </div>
 
             <div className="flex-1 space-y-4">
-              {column.units.map((unit) => (
-                <Card key={unit.id} className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors shadow-sm">
+              {column.units.map((unit, idx) => (
+                <Card key={idx} className="hover:border-primary/40 transition-colors shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -138,8 +136,8 @@ export default function StatusPage() {
               
               <Button
                 variant="ghost"
-                className="w-full border border-dashed border-border/50 h-12 text-muted-foreground hover:text-primary hover:border-primary/50 text-xs"
-                onClick={() => toast(`Assign unit to ${column.title} coming soon`, 'info')}
+                className="w-full border border-dashed border-border/50 h-12 text-muted-foreground text-xs"
+                disabled
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Assign Unit
@@ -149,5 +147,17 @@ export default function StatusPage() {
         ))}
       </div>
     </div>
+  )
+}
+
+export default function StatusPage() {
+  return (
+    <PremiumLock
+      title="Coming Soon"
+      version="V2"
+      description="The tactical Response Board with real-time unit deployment tracking, incident management, and Kanban-style operational views is being built for the next release."
+    >
+      <StatusContent />
+    </PremiumLock>
   )
 }

@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
 import { useWebSocket } from '@/lib/websocket'
-import { getAlerts, getMissingPersons } from '@/lib/api'
+import { getStats } from '@/lib/api'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -25,10 +25,10 @@ export default function Dashboard() {
   const { lastMessage, isConnected } = useWebSocket()
   
   const [stats, setStats] = useState({
-    cameras: '1,248',
+    detections: 0,
     identified: 0,
     alerts: 0,
-    patrolResponse: '98%'
+    activeCases: 0
   })
 
   const [latestMatch, setLatestMatch] = useState<any>(null)
@@ -38,13 +38,14 @@ export default function Dashboard() {
   const [patrolUnits, setPatrolUnits] = useState<Record<string, any>>({})
 
   useEffect(() => {
-    // Initial fetch for stats
-    Promise.all([getAlerts(), getMissingPersons()]).then(([alertsRes, personsRes]) => {
-      setStats(prev => ({
-        ...prev,
-        alerts: alertsRes.length,
-        identified: personsRes.filter((p: any) => p.status === 'Found').length
-      }))
+    // Initial fetch for stats from aggregated endpoint
+    getStats().then((data) => {
+      setStats({
+        detections: data.total_detection_events,
+        identified: data.found_persons,
+        alerts: data.total_alerts,
+        activeCases: data.total_missing_persons - data.found_persons
+      })
     }).catch(console.error)
   }, [])
 
@@ -231,10 +232,10 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Active Cameras', value: stats.cameras, icon: Eye, color: 'text-blue-500' },
-          { label: 'Identified Targets', value: stats.identified, icon: UserCheck, color: 'text-green-500' },
+          { label: 'Detection Events', value: stats.detections, icon: Eye, color: 'text-blue-500' },
+          { label: 'Persons Found', value: stats.identified, icon: UserCheck, color: 'text-green-500' },
           { label: 'Total Alerts', value: stats.alerts, icon: ShieldAlert, color: 'text-yellow-500' },
-          { label: 'Patrol Response', value: stats.patrolResponse, icon: Clock, color: 'text-primary' },
+          { label: 'Active Cases', value: stats.activeCases, icon: Clock, color: 'text-primary' },
         ].map((stat, i) => (
           <Card key={i} className="group">
             <CardContent className="pt-6">

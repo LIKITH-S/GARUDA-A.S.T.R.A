@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
+import { PremiumLock } from '@/components/ui/PremiumLock'
 
 const services = [
   { name: 'Facial Extraction Engine', status: 'Operational', uptime: '99.99%', latency: '42ms', load: '12%', icon: Cpu },
@@ -26,7 +27,7 @@ const services = [
   { name: 'Neural Network Cluster A', status: 'Degraded', uptime: '84.21%', latency: '450ms', load: '98%', icon: Zap },
 ]
 
-export default function ServicesPage() {
+function ServicesContent() {
   const { toast } = useToast()
 
   return (
@@ -37,11 +38,11 @@ export default function ServicesPage() {
           <p className="text-muted-foreground">Monitor the status and performance of backend intelligence modules.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => toast('Cluster restart initiated — estimated recovery: 45s', 'warning')}>
+          <Button variant="outline" size="sm">
             <RefreshCcw className="w-4 h-4 mr-2" />
             Restart Cluster
           </Button>
-          <Button size="sm" onClick={() => toast('Full metrics dashboard coming soon', 'info')}>
+          <Button size="sm">
             <BarChart3 className="w-4 h-4 mr-2" />
             Full Metrics
           </Button>
@@ -117,5 +118,17 @@ export default function ServicesPage() {
          </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ServicesPage() {
+  return (
+    <PremiumLock
+      title="Coming Soon"
+      version="V2"
+      description="Real-time AI service health monitoring, latency tracking, and cluster management are being built for the next release."
+    >
+      <ServicesContent />
+    </PremiumLock>
   )
 }

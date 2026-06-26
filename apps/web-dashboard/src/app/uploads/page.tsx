@@ -82,36 +82,10 @@ export default function UploadsPage() {
               <CardDescription>Recently added files awaiting processing</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="space-y-4">
-                 {[
-                   { name: 'CAM-042_20240512_1430.mp4', size: '248.5 MB', progress: 100, status: 'Completed' },
-                   { name: 'SUSPECT_CROP_HD.jpg', size: '1.2 MB', progress: 100, status: 'Completed' },
-                   { name: 'DRONE_SCAN_SOUTH.mp4', size: '1.2 GB', progress: 65, status: 'Uploading' },
-                 ].map((file, i) => (
-                   <div key={i} className="p-4 rounded-lg bg-secondary/30 border border-border flex flex-col gap-3">
-                     <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                         <div className="p-2 bg-secondary rounded">
-                           {file.name.endsWith('.mp4') ? <FileVideo className="w-4 h-4 text-blue-400" /> : <ImageIcon className="w-4 h-4 text-green-400" />}
-                         </div>
-                         <div>
-                           <p className="text-sm font-medium">{file.name}</p>
-                           <p className="text-xs text-muted-foreground">{file.size}</p>
-                         </div>
-                       </div>
-                       <Badge variant={file.status === 'Completed' ? 'success' : 'secondary'}>
-                         {file.status === 'Completed' ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Cloud className="w-3 h-3 mr-1 animate-bounce" />}
-                         {file.status}
-                       </Badge>
-                     </div>
-                     <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full transition-all duration-500", file.status === 'Completed' ? 'bg-green-500' : 'bg-primary')} 
-                          style={{ width: `${file.progress}%` }}
-                        ></div>
-                     </div>
-                   </div>
-                 ))}
+               <div className="flex flex-col items-center justify-center py-8 text-center">
+                 <Cloud className="w-8 h-8 text-muted-foreground/30 mb-3" />
+                 <p className="text-sm text-muted-foreground">No files in the upload queue.</p>
+                 <p className="text-xs text-muted-foreground/60 mt-1">Drop files above to start processing.</p>
                </div>
             </CardContent>
           </Card>

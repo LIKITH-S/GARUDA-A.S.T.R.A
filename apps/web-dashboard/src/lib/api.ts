@@ -78,3 +78,11 @@ export async function uploadMissingPersonImage(id: string, file: File) {
   
   return response.json()
 }
+
+export async function getStats() {
+  return fetchApi('/alerts/stats')
+}
+
+export async function getUsers() {
+  return fetchApi('/admin/users')
+}
