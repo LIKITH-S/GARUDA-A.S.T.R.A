@@ -187,6 +187,11 @@ async def update_alert_status(
                 if existing_assignment:
                     existing_assignment.status = assignment_status
                 elif new_status == "EN-ROUTE":
+                    # Check if ANY assignment already exists (since it's 1 officer max)
+                    if len(alert.assignments) > 0:
+                        from fastapi import HTTPException
+                        raise HTTPException(status_code=400, detail="Alert is already assigned to another officer.")
+                    
                     # Only auto-create assignment if they hit EN-ROUTE and it didn't exist
                     new_assignment = Assignment(
                         officer_id=officer.id,

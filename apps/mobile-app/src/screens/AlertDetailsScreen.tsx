@@ -20,14 +20,23 @@ interface AlertDetailsScreenProps {
   alert: AlertItem;
   onBack: () => void;
   onUpdateStatus: (alertId: string, status: AlertItem['status']) => void;
+  currentOfficerId: string;
 }
 
 export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
   alert,
   onBack,
   onUpdateStatus,
+  currentOfficerId,
 }) => {
   const [currentStatus, setCurrentStatus] = useState<AlertItem['status']>(alert.status);
+
+  // Determine assignment rules
+  const assignments = alert.assignments || [];
+  const isAssigned = assignments.length > 0;
+  const isAssignedToMe = isAssigned && assignments.some(a => a.officer?.badge_number === currentOfficerId);
+  const isAssignedToOther = isAssigned && !isAssignedToMe;
+  const otherOfficerAssignment = isAssignedToOther ? assignments[0] : null;
 
   const handleStatusChange = (status: AlertItem['status']) => {
     setCurrentStatus(status);
@@ -210,128 +219,148 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
         {/* Operational Field Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.actionsTitle}>OPERATIONAL FIELD CONTROLS</Text>
-          <View style={styles.buttonsGrid}>
-            <TouchableOpacity
-              onPress={() => handleStatusChange('EN-ROUTE')}
-              style={[
-                styles.actionButton,
-                currentStatus === 'EN-ROUTE'
-                  ? styles.btnEnRouteActive
-                  : styles.btnEnRoute,
-              ]}
-            >
-              <MaterialIcons
-                name="directions-car"
-                size={18}
-                color={currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant}
-              />
-              <Text
+          {isAssignedToOther ? (
+            <View style={{
+              backgroundColor: 'rgba(246, 190, 57, 0.05)',
+              borderWidth: 1,
+              borderColor: 'rgba(246, 190, 57, 0.2)',
+              borderRadius: 8,
+              padding: 16,
+              alignItems: 'center',
+              marginTop: 12
+            }}>
+              <MaterialIcons name="lock" size={24} color={COLORS.primary} style={{ marginBottom: 8 }} />
+              <Text style={{ color: COLORS.onSurface, fontFamily: TYPOGRAPHY.bold, fontSize: 14, textAlign: 'center' }}>
+                ACTION LOCKED
+              </Text>
+              <Text style={{ color: COLORS.onSurfaceVariant, fontFamily: TYPOGRAPHY.medium, fontSize: 13, textAlign: 'center', marginTop: 4 }}>
+                This alert is currently being handled by {otherOfficerAssignment?.officer?.user?.full_name || 'another officer'}.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.buttonsGrid}>
+              <TouchableOpacity
+                onPress={() => handleStatusChange('EN-ROUTE')}
                 style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant }
+                  styles.actionButton,
+                  currentStatus === 'EN-ROUTE'
+                    ? styles.btnEnRouteActive
+                    : styles.btnEnRoute,
                 ]}
               >
-                EN-ROUTE
-              </Text>
-            </TouchableOpacity>
+                <MaterialIcons
+                  name="directions-car"
+                  size={18}
+                  color={currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnLabel,
+                    { color: currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant }
+                  ]}
+                >
+                  EN-ROUTE
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleStatusChange('INVESTIGATING')}
-              style={[
-                styles.actionButton,
-                currentStatus === 'INVESTIGATING'
-                  ? styles.btnInvestigatingActive
-                  : styles.btnInvestigating,
-              ]}
-            >
-              <MaterialIcons
-                name="search"
-                size={18}
-                color={currentStatus === 'INVESTIGATING' ? COLORS.primary : COLORS.onSurfaceVariant}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleStatusChange('INVESTIGATING')}
                 style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'INVESTIGATING' ? COLORS.primary : COLORS.onSurfaceVariant }
+                  styles.actionButton,
+                  currentStatus === 'INVESTIGATING'
+                    ? styles.btnInvestigatingActive
+                    : styles.btnInvestigating,
                 ]}
               >
-                INVESTIGATING
-              </Text>
-            </TouchableOpacity>
+                <MaterialIcons
+                  name="search"
+                  size={18}
+                  color={currentStatus === 'INVESTIGATING' ? COLORS.primary : COLORS.onSurfaceVariant}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnLabel,
+                    { color: currentStatus === 'INVESTIGATING' ? COLORS.primary : COLORS.onSurfaceVariant }
+                  ]}
+                >
+                  INVESTIGATE
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleStatusChange('FALSE ALARM')}
-              style={[
-                styles.actionButton,
-                currentStatus === 'FALSE ALARM'
-                  ? styles.btnFalseActive
-                  : styles.btnFalse,
-              ]}
-            >
-              <MaterialIcons
-                name="cancel"
-                size={18}
-                color={currentStatus === 'FALSE ALARM' ? COLORS.onSurface : COLORS.onSurfaceVariant}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleStatusChange('FALSE ALARM')}
                 style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'FALSE ALARM' ? COLORS.onSurface : COLORS.onSurfaceVariant }
+                  styles.actionButton,
+                  currentStatus === 'FALSE ALARM' || currentStatus === 'Rejected False Positive'
+                    ? styles.btnFalseActive
+                    : styles.btnFalse,
                 ]}
               >
-                FALSE ALARM
-              </Text>
-            </TouchableOpacity>
+                <MaterialIcons
+                  name="cancel"
+                  size={18}
+                  color={currentStatus === 'FALSE ALARM' || currentStatus === 'Rejected False Positive' ? COLORS.error : COLORS.onSurfaceVariant}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnLabel,
+                    { color: currentStatus === 'FALSE ALARM' || currentStatus === 'Rejected False Positive' ? COLORS.error : COLORS.onSurfaceVariant }
+                  ]}
+                >
+                  FALSE ALARM
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleStatusChange('TARGET LOST')}
-              style={[
-                styles.actionButton,
-                currentStatus === 'TARGET LOST'
-                  ? styles.btnLostActive
-                  : styles.btnLost,
-              ]}
-            >
-              <MaterialIcons
-                name="directions-run"
-                size={18}
-                color={currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleStatusChange('TARGET LOST')}
                 style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant }
+                  styles.actionButton,
+                  currentStatus === 'TARGET LOST'
+                    ? styles.btnLostActive
+                    : styles.btnLost,
                 ]}
               >
-                TARGET LOST
-              </Text>
-            </TouchableOpacity>
+                <MaterialIcons
+                  name="directions-run"
+                  size={18}
+                  color={currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnLabel,
+                    { color: currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant }
+                  ]}
+                >
+                  TARGET LOST
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleStatusChange('FOUND')}
-              style={[
-                styles.actionButton,
-                { width: '100%' },
-                currentStatus === 'FOUND'
-                  ? styles.btnCompleteActive
-                  : styles.btnComplete,
-              ]}
-            >
-              <MaterialIcons
-                name="check-circle"
-                size={18}
-                color={currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleStatusChange('FOUND')}
                 style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary }
+                  styles.actionButton,
+                  { width: '100%' },
+                  currentStatus === 'FOUND'
+                    ? styles.btnCompleteActive
+                    : styles.btnComplete,
                 ]}
               >
-                FOUND
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <MaterialIcons
+                  name="check-circle"
+                  size={18}
+                  color={currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnLabel,
+                    { color: currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary }
+                  ]}
+                >
+                  FOUND
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

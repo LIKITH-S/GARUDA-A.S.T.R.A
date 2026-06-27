@@ -474,6 +474,7 @@ export default function App() {
             alert={selectedAlert!}
             onBack={handleBackToAlerts}
             onUpdateStatus={handleUpdateAlertStatus}
+            currentOfficerId={officer.unitId}
           />
         );
       case 'cases':
