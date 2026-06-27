@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
-import { getAlerts, verifyAlert, rejectAlert } from '@/lib/api'
+import { getAlerts, verifyAlert, rejectAlert, API_URL } from '@/lib/api'
 import { useWebSocket } from '@/lib/websocket'
 
 function mapAlert(a: any) {
@@ -41,7 +41,7 @@ function mapAlert(a: any) {
     camera: a.detection_event?.camera_id
       ? String(a.detection_event.camera_id).substring(0, 8)
       : 'Unknown',
-    imagePath: a.detection_event?.image_path ?? null,
+    imagePath: a.detection_event?.image_path ?? a.missing_person?.photo_path ?? null,
   }
 }
 
@@ -190,7 +190,15 @@ export default function AlertsPage() {
                         <div className="w-full h-8 bg-gradient-to-b from-transparent via-primary/10 to-transparent animate-scan-line"></div>
                       </div>
                     )}
-                    <ShieldAlert className={cn("w-8 h-8 opacity-20", alert.status === 'Rejected' && "text-green-500")} />
+                    {alert.imagePath ? (
+                      <img 
+                        src={`${API_URL.replace('/api/v1', '')}${alert.imagePath.startsWith('/') ? '' : '/'}${alert.imagePath}`} 
+                        alt="Alert subject" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <ShieldAlert className={cn("w-8 h-8 opacity-20", alert.status === 'Rejected' && "text-green-500")} />
+                    )}
                     <div className="absolute bottom-2 right-2">
                       <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10">
                         {alert.confidence}% Confidence

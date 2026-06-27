@@ -306,14 +306,14 @@ export default function App() {
   };
 
   const handleRespondAlert = (alertId: string) => {
-    // Proactively update status to 'INVESTIGATING'
+    // Proactively update status to 'EN-ROUTE'
     setAlerts((prevAlerts) =>
-      prevAlerts.map((a) => (a.id === alertId ? { ...a, status: 'INVESTIGATING' } : a))
+      prevAlerts.map((a) => (a.id === alertId ? { ...a, status: 'EN-ROUTE' } : a))
     );
 
     const targetAlert = alerts.find((a) => a.id === alertId);
     if (targetAlert) {
-      setSelectedAlert({ ...targetAlert, status: 'INVESTIGATING' });
+      setSelectedAlert({ ...targetAlert, status: 'EN-ROUTE' });
       setCurrentScreen('details');
     }
   };
@@ -325,9 +325,9 @@ export default function App() {
 
     try {
       const { verifyAlertApi, rejectAlertApi } = require('./src/services/api');
-      if (status === 'FALSE ALARM' || status === 'FALSE ALERT') {
+      if (status === 'FALSE ALARM') {
         await rejectAlertApi(alertId);
-      } else if (status === 'RESOLVED' || status === 'APPREHENDED' || status === 'COMPLETED') {
+      } else if (status === 'FOUND') {
         await verifyAlertApi(alertId);
       }
     } catch (e) {

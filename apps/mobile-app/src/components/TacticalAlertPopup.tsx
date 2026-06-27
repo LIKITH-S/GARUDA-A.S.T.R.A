@@ -184,7 +184,7 @@ export const TacticalAlertPopup: React.FC<TacticalAlertPopupProps> = ({
             <Animated.View style={[styles.buttonPulse, { opacity: pulseAnim }]} />
             <View style={styles.buttonContent}>
               <MaterialIcons name="gps-fixed" size={20} color={COLORS.onBackground} style={{ marginRight: 8 }} />
-              <Text style={styles.buttonText}>ACKNOWLEDGE & PLOT INTERCEPT</Text>
+              <Text style={styles.buttonText}>VIEW ALERT</Text>
             </View>
           </TouchableOpacity>
         </View>

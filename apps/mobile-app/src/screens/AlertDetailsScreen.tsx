@@ -68,29 +68,11 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
           </View>
         </View>
 
-        {/* Dual Biometric Feeds */}
+        {/* Subject Image */}
         <View style={styles.feedsGrid}>
-          {/* Feed 1: CCTV Detection */}
           <TacticalCard containerStyle={styles.feedCard}>
             <View style={styles.feedHeader}>
-              <Text style={styles.feedLabel}>DETECTED FEED</Text>
-              <Text style={styles.feedValue}>{alert.cameraName || 'CAM-224-B'}</Text>
-            </View>
-            <View style={styles.feedImageWrapper}>
-              <Image 
-                source={{ uri: alert.mugshotUrl || 'https://via.placeholder.com/150' }} 
-                style={styles.feedImageGray} 
-              />
-              {currentStatus === 'ALERT' && (
-                <ScanLine color={COLORS.secondary} duration={3000} />
-              )}
-            </View>
-          </TacticalCard>
-
-          {/* Feed 2: Database Match */}
-          <TacticalCard containerStyle={styles.feedCard}>
-            <View style={styles.feedHeader}>
-              <Text style={styles.feedLabelPrimary}>DATABASE MATCH</Text>
+              <Text style={styles.feedLabelPrimary}>SUBJECT DATABASE MATCH</Text>
               <Text style={styles.feedValue}>REC: {alert.fileNo}</Text>
             </View>
             <View style={styles.feedImageWrapper}>
@@ -100,12 +82,17 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
                 }}
                 style={styles.feedImageColor}
               />
-              <View style={styles.confidenceBadge}>
-                <Text style={styles.confidenceNumber}>
-                  {alert.confidence || (alert.matchPercentage ? `${alert.matchPercentage}%` : '90.0%')}
-                </Text>
-                <Text style={styles.confidenceLabel}>CONFIDENCE</Text>
-              </View>
+              {currentStatus === 'ALERT' && (
+                <ScanLine color={COLORS.secondary} duration={3000} />
+              )}
+              {alert.confidence || alert.matchPercentage ? (
+                <View style={styles.confidenceBadge}>
+                  <Text style={styles.confidenceNumber}>
+                    {alert.confidence || `${alert.matchPercentage}%`}
+                  </Text>
+                  <Text style={styles.confidenceLabel}>CONFIDENCE</Text>
+                </View>
+              ) : null}
             </View>
           </TacticalCard>
         </View>
@@ -186,7 +173,30 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
         {/* Operational Field Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.actionsTitle}>OPERATIONAL FIELD CONTROLS</Text>
-          <View style={styles.buttonsGrid}>
+            <TouchableOpacity
+              onPress={() => handleStatusChange('EN-ROUTE')}
+              style={[
+                styles.actionButton,
+                currentStatus === 'EN-ROUTE'
+                  ? styles.btnEnRouteActive
+                  : styles.btnEnRoute,
+              ]}
+            >
+              <MaterialIcons
+                name="directions-car"
+                size={18}
+                color={currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant}
+              />
+              <Text
+                style={[
+                  styles.actionBtnLabel,
+                  { color: currentStatus === 'EN-ROUTE' ? COLORS.primary : COLORS.onSurfaceVariant }
+                ]}
+              >
+                EN-ROUTE
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => handleStatusChange('INVESTIGATING')}
               style={[
@@ -212,34 +222,10 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleStatusChange('LOCATED')}
+              onPress={() => handleStatusChange('FALSE ALARM')}
               style={[
                 styles.actionButton,
-                currentStatus === 'LOCATED'
-                  ? styles.btnLocatedActive
-                  : styles.btnLocated,
-              ]}
-            >
-              <MaterialIcons
-                name="gps-fixed"
-                size={18}
-                color={currentStatus === 'LOCATED' ? COLORS.onPrimary : COLORS.primary}
-              />
-              <Text
-                style={[
-                  styles.actionBtnLabel,
-                  { color: currentStatus === 'LOCATED' ? COLORS.onPrimary : COLORS.primary }
-                ]}
-              >
-                LOCATED
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => handleStatusChange('FALSE ALERT')}
-              style={[
-                styles.actionButton,
-                currentStatus === 'FALSE ALERT'
+                currentStatus === 'FALSE ALARM'
                   ? styles.btnFalseActive
                   : styles.btnFalse,
               ]}
@@ -247,23 +233,48 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
               <MaterialIcons
                 name="cancel"
                 size={18}
-                color={currentStatus === 'FALSE ALERT' ? COLORS.onSurface : COLORS.onSurfaceVariant}
+                color={currentStatus === 'FALSE ALARM' ? COLORS.onSurface : COLORS.onSurfaceVariant}
               />
               <Text
                 style={[
                   styles.actionBtnLabel,
-                  { color: currentStatus === 'FALSE ALERT' ? COLORS.onSurface : COLORS.onSurfaceVariant }
+                  { color: currentStatus === 'FALSE ALARM' ? COLORS.onSurface : COLORS.onSurfaceVariant }
                 ]}
               >
-                FALSE ALERT
+                FALSE ALARM
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleStatusChange('COMPLETED')}
+              onPress={() => handleStatusChange('TARGET LOST')}
               style={[
                 styles.actionButton,
-                currentStatus === 'COMPLETED'
+                currentStatus === 'TARGET LOST'
+                  ? styles.btnLostActive
+                  : styles.btnLost,
+              ]}
+            >
+              <MaterialIcons
+                name="directions-run"
+                size={18}
+                color={currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant}
+              />
+              <Text
+                style={[
+                  styles.actionBtnLabel,
+                  { color: currentStatus === 'TARGET LOST' ? COLORS.error : COLORS.onSurfaceVariant }
+                ]}
+              >
+                TARGET LOST
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleStatusChange('FOUND')}
+              style={[
+                styles.actionButton,
+                { width: '100%' },
+                currentStatus === 'FOUND'
                   ? styles.btnCompleteActive
                   : styles.btnComplete,
               ]}
@@ -271,15 +282,15 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
               <MaterialIcons
                 name="check-circle"
                 size={18}
-                color={currentStatus === 'COMPLETED' ? COLORS.onSecondary : COLORS.secondary}
+                color={currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary}
               />
               <Text
                 style={[
                   styles.actionBtnLabel,
-                  { color: currentStatus === 'COMPLETED' ? COLORS.onSecondary : COLORS.secondary }
+                  { color: currentStatus === 'FOUND' ? COLORS.onSecondary : COLORS.secondary }
                 ]}
               >
-                COMPLETED
+                FOUND
               </Text>
             </TouchableOpacity>
           </View>
@@ -630,6 +641,22 @@ const styles = StyleSheet.create({
   btnFalseActive: {
     backgroundColor: COLORS.surfaceHigh,
     borderColor: COLORS.outline,
+  },
+  btnEnRoute: {
+    backgroundColor: COLORS.surfaceContainer,
+    borderColor: 'rgba(57, 190, 246, 0.4)',
+  },
+  btnEnRouteActive: {
+    backgroundColor: 'rgba(57, 190, 246, 0.2)',
+    borderColor: COLORS.primary,
+  },
+  btnLost: {
+    backgroundColor: COLORS.surfaceContainer,
+    borderColor: 'rgba(246, 57, 57, 0.4)',
+  },
+  btnLostActive: {
+    backgroundColor: 'rgba(246, 57, 57, 0.2)',
+    borderColor: COLORS.error,
   },
   btnComplete: {
     backgroundColor: COLORS.surfaceContainer,

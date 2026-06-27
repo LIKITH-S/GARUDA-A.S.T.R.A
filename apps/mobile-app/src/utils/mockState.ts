@@ -23,7 +23,7 @@ export interface AlertItem {
   confidence?: string;
   latitude: number;
   longitude: number;
-  status: 'ALERT' | 'INVESTIGATING' | 'LOCATED' | 'FALSE ALERT' | 'COMPLETED';
+  status: 'ALERT' | 'EN-ROUTE' | 'INVESTIGATING' | 'FALSE ALARM' | 'TARGET LOST' | 'FOUND';
   assignedOfficer?: {
     name: string;
     unitId: string;
