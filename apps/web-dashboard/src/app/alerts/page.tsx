@@ -42,6 +42,7 @@ function mapAlert(a: any) {
       ? String(a.detection_event.camera_id).substring(0, 8)
       : 'Unknown',
     imagePath: a.detection_event?.image_path ?? a.missing_person?.photo_path ?? null,
+    assignments: a.assignments || [],
   }
 }
 
@@ -228,11 +229,33 @@ export default function AlertsPage() {
                     </Button>
                   </CardFooter>
                 ) : (
-                  <CardFooter>
+                  <CardFooter className="flex-col gap-2">
                     <div className="flex items-center gap-2 w-full justify-center py-1 text-xs text-muted-foreground">
                       <Eye className="w-3.5 h-3.5" />
-                      <span className="font-medium">{alert.status === 'Verified' ? 'Dispatch Triggered' : 'Marked as False Positive'}</span>
+                      <span className="font-medium">
+                        {alert.status === 'Verified' ? 'Dispatch Triggered' : 
+                         alert.status === 'EN-ROUTE' ? 'Officers Responding' :
+                         alert.status === 'Rejected False Positive' || alert.status === 'Rejected' ? 'Marked as False Positive' : alert.status}
+                      </span>
                     </div>
+                    {(alert.status === 'Verified' || alert.status === 'EN-ROUTE' || alert.status === 'INVESTIGATING') && (
+                      <div className="w-full text-center text-xs p-2 rounded-md bg-secondary/30">
+                        {alert.assignments?.length > 0 ? (
+                          <div className="space-y-1">
+                            <span className="font-semibold text-primary block mb-1">Assigned Officers:</span>
+                            {alert.assignments.map((assignment: any, index: number) => (
+                              <div key={index} className="text-muted-foreground">
+                                {assignment.officer?.user?.full_name || 'Unknown Officer'} 
+                                {assignment.officer?.badge_number ? ` (${assignment.officer.badge_number})` : ''}
+                                {assignment.status === 'Accepted' ? ' - En Route' : ''}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-yellow-600 dark:text-yellow-500">⚠️ Not assigned to anyone</span>
+                        )}
+                      </div>
+                    )}
                   </CardFooter>
                 )}
               </Card>

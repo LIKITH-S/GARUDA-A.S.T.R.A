@@ -12,6 +12,8 @@ from database.models.ai_events import Alert, DetectionEvent
 from services.backend.schemas.alert import AlertRead, AlertStatusUpdate
 from services.backend.services.dispatch_service import dispatch_service
 from database.models.registry import MissingPerson
+from database.models.operations import Assignment
+from database.models.personnel import Officer
 
 router = APIRouter()
 
@@ -77,7 +79,8 @@ async def read_alerts(
     
     query = select(Alert).options(
         joinedload(Alert.detection_event),
-        joinedload(Alert.missing_person)
+        joinedload(Alert.missing_person),
+        joinedload(Alert.assignments).joinedload(Assignment.officer).joinedload(Officer.user)
     )
     
     if current_user.role.name in ["officer", "patrol"]:
@@ -135,7 +138,8 @@ async def update_alert_status(
         select(Alert)
         .options(
             joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
+            joinedload(Alert.missing_person),
+            joinedload(Alert.assignments).joinedload(Assignment.officer).joinedload(Officer.user)
         )
         .where(Alert.id == uuid.UUID(alert_id))
     )
@@ -162,6 +166,27 @@ async def update_alert_status(
             event_lat=12.9716, # Placeholder coordinates, could be fetched from detection_event
             event_lng=77.5946
         )
+    elif new_status == "EN-ROUTE":
+        # The officer has accepted the assignment
+        if current_user.role.name in ["officer", "patrol"]:
+            # Find the officer record for this user
+            officer_result = await db.execute(
+                select(Officer).where(Officer.user_id == current_user.id)
+            )
+            officer = officer_result.scalars().first()
+            if officer:
+                # Check if this officer is already assigned
+                existing_assignment = next((a for a in alert.assignments if a.officer_id == officer.id), None)
+                if existing_assignment:
+                    existing_assignment.status = "Accepted"
+                else:
+                    new_assignment = Assignment(
+                        officer_id=officer.id,
+                        dispatch_unit_id=officer.dispatch_unit_id,
+                        alert_id=alert.id,
+                        status="Accepted"
+                    )
+                    db.add(new_assignment)
     elif new_status == "FOUND":
         # Auto-resolve missing person
         if getattr(alert, "missing_person", None):
@@ -174,7 +199,8 @@ async def update_alert_status(
         select(Alert)
         .options(
             joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
+            joinedload(Alert.missing_person),
+            joinedload(Alert.assignments).joinedload(Assignment.officer).joinedload(Officer.user)
         )
         .where(Alert.id == uuid.UUID(alert_id))
     )

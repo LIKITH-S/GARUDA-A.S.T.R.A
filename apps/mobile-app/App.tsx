@@ -307,14 +307,32 @@ export default function App() {
   };
 
   const handleRespondAlert = (alertId: string) => {
-    // Proactively update status to 'EN-ROUTE'
+    // Proactively update status to 'EN-ROUTE' and add current officer
+    const optimisticAssignment = {
+      status: 'Accepted',
+      officer: { badge_number: officer.unitId, user: { full_name: officer.name } }
+    };
+
     setAlerts((prevAlerts) =>
-      prevAlerts.map((a) => (a.id === alertId ? { ...a, status: 'EN-ROUTE' } : a))
+      prevAlerts.map((a) => {
+        if (a.id === alertId) {
+          const assignments = a.assignments ? [...a.assignments] : [];
+          if (!assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
+            assignments.push(optimisticAssignment);
+          }
+          return { ...a, status: 'EN-ROUTE', assignments };
+        }
+        return a;
+      })
     );
 
     const targetAlert = alerts.find((a) => a.id === alertId);
     if (targetAlert) {
-      setSelectedAlert({ ...targetAlert, status: 'EN-ROUTE' });
+      const assignments = targetAlert.assignments ? [...targetAlert.assignments] : [];
+      if (!assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
+        assignments.push(optimisticAssignment);
+      }
+      setSelectedAlert({ ...targetAlert, status: 'EN-ROUTE', assignments });
       setCurrentScreen('details');
     }
   };
@@ -335,11 +353,35 @@ export default function App() {
       console.error('Failed to sync alert status with backend', e);
     }
 
+    const optimisticAssignment = status === 'EN-ROUTE' ? {
+      status: 'Accepted',
+      officer: { badge_number: officer.unitId, user: { full_name: officer.name } }
+    } : null;
+
     setAlerts((prevAlerts) =>
-      prevAlerts.map((a) => (a.id === alertId ? { ...a, status } : a))
+      prevAlerts.map((a) => {
+        if (a.id === alertId) {
+          const assignments = a.assignments ? [...a.assignments] : [];
+          if (optimisticAssignment && !assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
+            assignments.push(optimisticAssignment);
+          }
+          return { ...a, status, assignments };
+        }
+        return a;
+      })
     );
+    
     // Also update selected alert state
-    setSelectedAlert((prev) => (prev && prev.id === alertId ? { ...prev, status } : prev));
+    setSelectedAlert((prev) => {
+      if (prev && prev.id === alertId) {
+        const assignments = prev.assignments ? [...prev.assignments] : [];
+        if (optimisticAssignment && !assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
+          assignments.push(optimisticAssignment);
+        }
+        return { ...prev, status, assignments };
+      }
+      return prev;
+    });
 
     // Append audit log entry
     const newLogEntry: AuditLogEntry = {

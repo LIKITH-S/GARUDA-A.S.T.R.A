@@ -31,11 +31,15 @@ export interface BackendAlertPayload {
   mugshotUrl?: string;
   latitude?: number;
   longitude?: number;
-  assignedOfficer?: {
-    name: string;
-    unitId: string;
-    rank: string;
-  };
+  assignments?: Array<{
+    status: string;
+    officer?: {
+      badge_number: string;
+      user?: {
+        full_name: string;
+      };
+    };
+  }>;
   telemetry?: {
     azimuth: string;
     zoom: string;
@@ -77,7 +81,7 @@ export function normalizeAlert(payload: BackendAlertPayload): AlertItem {
     latitude: payload.latitude || FALLBACK_LAT,
     longitude: payload.longitude || FALLBACK_LON,
     status: 'ALERT',
-    assignedOfficer: payload.assignedOfficer,
+    assignments: payload.assignments,
     telemetry: payload.telemetry,
   };
 }

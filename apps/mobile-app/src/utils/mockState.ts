@@ -24,11 +24,15 @@ export interface AlertItem {
   latitude: number;
   longitude: number;
   status: 'ALERT' | 'EN-ROUTE' | 'INVESTIGATING' | 'FALSE ALARM' | 'TARGET LOST' | 'FOUND';
-  assignedOfficer?: {
-    name: string;
-    unitId: string;
-    rank: string;
-  };
+  assignments?: Array<{
+    status: string;
+    officer?: {
+      badge_number: string;
+      user?: {
+        full_name: string;
+      };
+    };
+  }>;
   telemetry?: {
     azimuth: string;
     zoom: string;

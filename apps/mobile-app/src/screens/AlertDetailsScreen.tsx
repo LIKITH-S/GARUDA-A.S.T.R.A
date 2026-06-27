@@ -170,6 +170,38 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
           </TacticalCard>
         </View>
 
+        {/* Assigned Officers Block */}
+        <View style={styles.assignmentsContainer}>
+          <Text style={styles.actionsTitle}>ASSIGNMENT STATUS</Text>
+          <TacticalCard containerStyle={{ marginBottom: 16 }}>
+            <View style={styles.cardPadding}>
+              {alert.assignments && alert.assignments.length > 0 ? (
+                alert.assignments.map((assignment, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 4 }}>
+                    <MaterialIcons name="local-police" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                    <Text style={{ color: COLORS.onSurface, fontFamily: TYPOGRAPHY.medium, fontSize: 14 }}>
+                      {assignment.officer?.user?.full_name || 'Unknown Officer'} 
+                      {assignment.officer?.badge_number ? ` (${assignment.officer.badge_number})` : ''}
+                    </Text>
+                    {assignment.status === 'Accepted' && (
+                      <Text style={{ color: COLORS.primary, marginLeft: 8, fontSize: 12, fontFamily: TYPOGRAPHY.bold }}>
+                        [ EN-ROUTE ]
+                      </Text>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialIcons name="warning" size={20} color={COLORS.error} style={{ marginRight: 8 }} />
+                  <Text style={{ color: COLORS.error, fontFamily: TYPOGRAPHY.medium, fontSize: 14 }}>
+                    NOT ASSIGNED TO ANYONE
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TacticalCard>
+        </View>
+
         {/* Operational Field Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.actionsTitle}>OPERATIONAL FIELD CONTROLS</Text>

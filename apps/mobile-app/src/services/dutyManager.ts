@@ -95,11 +95,7 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
         severity: isAssignment ? 'CRITICAL' : 'HIGH',
         location: alertData.lat ? { lat: alertData.lat, lng: alertData.lng } : undefined,
         mugshotUrl: finalPhotoUrl,
-        assignedOfficer: {
-          name: config.officerName,
-          unitId: config.officerId,
-          rank: config.officerRank,
-        },
+        assignments: alertData.assignments || [],
       };
       injectAlert(alertPayload);
     }

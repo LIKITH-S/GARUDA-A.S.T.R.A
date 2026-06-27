@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import uuid
 
@@ -21,6 +21,28 @@ class MissingPersonBrief(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class UserRead(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OfficerRead(BaseModel):
+    id: uuid.UUID
+    badge_number: str
+    unit_type: str
+    user: Optional[UserRead] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AssignmentRead(BaseModel):
+    id: uuid.UUID
+    status: str
+    officer: Optional[OfficerRead] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 class AlertRead(BaseModel):
     id: uuid.UUID
     detection_event_id: uuid.UUID
@@ -33,6 +55,7 @@ class AlertRead(BaseModel):
     updated_at: datetime
     detection_event: Optional[DetectionEventRead] = None
     missing_person: Optional[MissingPersonBrief] = None
+    assignments: Optional[List[AssignmentRead]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
