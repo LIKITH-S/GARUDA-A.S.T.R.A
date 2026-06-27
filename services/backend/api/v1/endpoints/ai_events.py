@@ -116,6 +116,11 @@ async def ingest_ai_event(
             await db.commit()
             await db.refresh(alert)
             
+            # Get person photo path for the frontend
+            person_result = await db.execute(select(MissingPerson).where(MissingPerson.id == missing_person_id))
+            person = person_result.scalars().first()
+            photo_path = person.photo_path if person else None
+
             # Broadcast to Admin & Dispatcher via WebSocket
             payload = {
                 "event": "possible_match_detected",
@@ -125,7 +130,8 @@ async def ingest_ai_event(
                     "camera_id": str(camera_id),
                     "confidence": confidence,
                     "lat": location_lat,
-                    "lng": location_lng
+                    "lng": location_lng,
+                    "image_path": photo_path
                 }
             }
             await manager.broadcast_to_dispatchers(payload)
@@ -204,7 +210,8 @@ async def test_alert(db: AsyncSession = Depends(deps.get_db)):
             "camera_id": str(camera_id),
             "confidence": confidence,
             "lat": location_lat,
-            "lng": location_lng
+            "lng": location_lng,
+            "image_path": person.photo_path
         }
     }
     

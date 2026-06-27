@@ -22,6 +22,7 @@ export interface BackendAlertPayload {
   id?: string;
   title: string;
   subtitle?: string;
+  description?: string;
   threatLevel?: 'HIGH' | 'MODERATE' | 'LOW';
   matchPercentage?: number;
   fileNo?: string;

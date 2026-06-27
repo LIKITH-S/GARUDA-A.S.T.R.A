@@ -173,6 +173,7 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
         {/* Operational Field Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.actionsTitle}>OPERATIONAL FIELD CONTROLS</Text>
+          <View style={styles.buttonsGrid}>
             <TouchableOpacity
               onPress={() => handleStatusChange('EN-ROUTE')}
               style={[

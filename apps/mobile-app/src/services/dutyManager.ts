@@ -73,13 +73,19 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
     if (data.event === 'possible_match_detected' || data.type === 'assignment') {
       const isAssignment = data.type === 'assignment';
       const alertData = isAssignment ? data : data.data;
-      
+      const baseUrl = config.wsUrl.split('/ws')[0].replace('ws://', 'http://').replace('wss://', 'https://');
+      const photoPath = alertData.image_path?.startsWith('/') ? alertData.image_path : `/${alertData.image_path}`;
+      const finalPhotoUrl = alertData.image_path ? `${baseUrl}${photoPath}` : '';
+      console.log('🚨 WEBSOCKET PAYLOAD:', JSON.stringify(alertData, null, 2));
+      console.log('🖼️ COMPUTED IMAGE URL:', finalPhotoUrl);
+
       const alertPayload: BackendAlertPayload = {
         id: alertData.alert_id || data.alert_id || String(Date.now()),
         title: isAssignment ? 'URGENT ASSIGNMENT' : 'POSSIBLE MATCH DETECTED',
         description: alertData.message || `Match Confidence: ${alertData.confidence}%`,
         severity: isAssignment ? 'CRITICAL' : 'HIGH',
         location: alertData.lat ? { lat: alertData.lat, lng: alertData.lng } : undefined,
+        mugshotUrl: finalPhotoUrl,
         assignedOfficer: {
           name: config.officerName,
           unitId: config.officerId,

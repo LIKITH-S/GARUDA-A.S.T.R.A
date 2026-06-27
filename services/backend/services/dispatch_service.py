@@ -25,7 +25,8 @@ class DispatchService:
             "message": "URGENT: Missing Person Match Confirmed. All units respond.",
             "lat": event_lat,
             "lng": event_lng,
-            "confidence": 99.9
+            "confidence": 99.9,
+            "image_path": alert.missing_person.photo_path if getattr(alert, "missing_person", None) else None
         }
 
         # Always broadcast to all connected patrol WebSocket clients first

@@ -227,7 +227,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
     officerName: 'Surya Pratap',
     unitId: 'UNIT-042',
     previousStatus: 'INVESTIGATING',
-    newStatus: 'COMPLETED',
+    newStatus: 'FOUND',
     timestamp: '11:45:02 UTC',
     note: 'Child located at Dharavi transit camp via CAM-DHR-03. Reunited with family.',
   },

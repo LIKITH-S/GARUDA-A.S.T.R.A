@@ -39,6 +39,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./withShortCxxPath.js",
+      "./withBackgroundService.js",
       "expo-audio",
       "expo-secure-store"
     ],
