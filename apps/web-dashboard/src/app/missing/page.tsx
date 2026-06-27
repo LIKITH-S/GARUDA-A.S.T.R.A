@@ -14,7 +14,8 @@ import {
   MoreVertical,
   ExternalLink,
   ShieldAlert,
-  X
+  X,
+  CheckCircle
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
