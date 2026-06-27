@@ -33,12 +33,12 @@ class Assignment(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "assignments"
 
     officer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("officers.id"))
-    dispatch_unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dispatch_units.id"))
+    dispatch_unit_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("dispatch_units.id"))
     incident_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("incidents.id"))
     alert_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("alerts.id"))
     status: Mapped[str] = mapped_column(String(50), default="Assigned")
     
     officer: Mapped["Officer"] = relationship(back_populates="assignments")
-    dispatch_unit: Mapped["DispatchUnit"] = relationship(back_populates="assignments")
+    dispatch_unit: Mapped[Optional["DispatchUnit"]] = relationship(back_populates="assignments")
     incident: Mapped[Optional["Incident"]] = relationship(back_populates="assignments")
     alert: Mapped[Optional["Alert"]] = relationship(back_populates="assignments")
