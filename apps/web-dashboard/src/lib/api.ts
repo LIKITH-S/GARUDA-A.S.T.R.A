@@ -34,12 +34,11 @@ export async function getAlerts() {
   return fetchApi('/alerts/')
 }
 
-export async function verifyAlert(id: string) {
-  return fetchApi(`/alerts/${id}/verify`, { method: 'POST' })
-}
-
-export async function rejectAlert(id: string) {
-  return fetchApi(`/alerts/${id}/reject`, { method: 'POST' })
+export async function updateAlertStatus(id: string, status: string) {
+  return fetchApi(`/alerts/${id}/status`, { 
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  })
 }
 
 export async function getMissingPersons() {

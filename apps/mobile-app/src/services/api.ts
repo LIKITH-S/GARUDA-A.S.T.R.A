@@ -39,29 +39,16 @@ export async function loginApi(username: string, password: string) {
   return response.json();
 }
 
-export async function verifyAlertApi(id: string) {
+export async function updateAlertStatusApi(id: string, status: string) {
   const headers = await getHeaders();
-  const response = await fetch(`${API_URL}/alerts/${id}/verify`, {
-    method: 'POST',
+  const response = await fetch(`${API_URL}/alerts/${id}/status`, {
+    method: 'PATCH',
     headers,
+    body: JSON.stringify({ status })
   });
 
   if (!response.ok) {
-    throw new Error('Failed to verify alert');
-  }
-
-  return response.json();
-}
-
-export async function rejectAlertApi(id: string) {
-  const headers = await getHeaders();
-  const response = await fetch(`${API_URL}/alerts/${id}/reject`, {
-    method: 'POST',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to reject alert');
+    throw new Error('Failed to update alert status');
   }
 
   return response.json();

@@ -152,6 +152,7 @@ export default function App() {
             const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
             const photoPath = a.missing_person?.photo_path?.startsWith('/') ? a.missing_person.photo_path : `/${a.missing_person?.photo_path}`;
             const finalPhotoUrl = a.missing_person?.photo_path ? `${baseUrl}${photoPath}` : 'https://ui-avatars.com/api/?name=Unknown';
+            console.log('App.tsx Old Alert URL:', finalPhotoUrl);
             
             return {
               id: a.id,
@@ -324,12 +325,12 @@ export default function App() {
     const previousStatus = targetAlert?.status || 'ALERT';
 
     try {
-      const { verifyAlertApi, rejectAlertApi } = require('./src/services/api');
+      const { updateAlertStatusApi } = require('./src/services/api');
+      let statusString = status;
       if (status === 'FALSE ALARM') {
-        await rejectAlertApi(alertId);
-      } else if (status === 'FOUND') {
-        await verifyAlertApi(alertId);
+        statusString = 'Rejected False Positive';
       }
+      await updateAlertStatusApi(alertId, statusString);
     } catch (e) {
       console.error('Failed to sync alert status with backend', e);
     }

@@ -9,7 +9,7 @@ from datetime import datetime
 from services.backend.api import deps
 from database.models.auth import User
 from database.models.ai_events import Alert, DetectionEvent
-from services.backend.schemas.alert import AlertRead
+from services.backend.schemas.alert import AlertRead, AlertStatusUpdate
 from services.backend.services.dispatch_service import dispatch_service
 from database.models.registry import MissingPerson
 
@@ -117,103 +117,16 @@ async def read_alerts(
     )
     return result.scalars().all()
 
-@router.post("/{alert_id}/verify", response_model=AlertRead)
-async def verify_alert(
+@router.patch("/{alert_id}/status", response_model=AlertRead)
+async def update_alert_status(
     alert_id: str,
+    status_update: AlertStatusUpdate,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ):
     """
-    Dispatcher verifies a match. 
-    This will trigger the Nearest Patrol automated assignment.
-    """
-    if current_user.role.name not in ["admin", "dispatcher", "officer"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    result = await db.execute(
-        select(Alert)
-        .options(
-            joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
-        )
-        .where(Alert.id == uuid.UUID(alert_id))
-    )
-    alert = result.scalar_one_or_none()
-
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
-    alert.status = "Verified"
-    alert.acknowledged_at = datetime.utcnow()
-    
-    await dispatch_service.assign_nearest_patrol(
-        db=db, 
-        alert=alert, 
-        event_lat=12.9716, 
-        event_lng=77.5946
-    )
-    
-    await db.commit()
-
-    # Re-fetch with all relations eagerly loaded for serialization
-    result = await db.execute(
-        select(Alert)
-        .options(
-            joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
-        )
-        .where(Alert.id == uuid.UUID(alert_id))
-    )
-    return result.scalar_one()
-
-@router.post("/{alert_id}/reject", response_model=AlertRead)
-async def reject_alert(
-    alert_id: str,
-    db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-):
-    """Dispatcher rejects a match as a false positive."""
-    if current_user.role.name not in ["admin", "dispatcher", "officer"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    result = await db.execute(
-        select(Alert)
-        .options(
-            joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
-        )
-        .where(Alert.id == uuid.UUID(alert_id))
-    )
-    alert = result.scalar_one_or_none()
-
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
-    alert.status = "Rejected False Positive"
-    alert.resolved_at = datetime.utcnow()
-    
-    await db.commit()
-
-    # Re-fetch with all relations eagerly loaded for serialization
-    result = await db.execute(
-        select(Alert)
-        .options(
-            joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
-        )
-        .where(Alert.id == uuid.UUID(alert_id))
-    )
-    return result.scalar_one()
-
-@router.post("/{alert_id}/complete", response_model=AlertRead)
-async def complete_alert(
-    alert_id: str,
-    db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-):
-    """
-    Patrol/Officer or Admin/Dispatcher marks an alert as complete.
-    This resolves the alert and changes the missing person's status to "Found".
+    Centralized endpoint to update alert status from any client.
+    Handles dispatching if 'Verified' and auto-resolving Missing Person if 'FOUND'.
     """
     if current_user.role.name not in ["admin", "dispatcher", "officer", "patrol"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -231,12 +144,29 @@ async def complete_alert(
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
-    alert.status = "Completed"
-    alert.resolved_at = datetime.utcnow()
+    new_status = status_update.status
+    alert.status = new_status
     
-    if alert.missing_person:
-        alert.missing_person.status = "Found"
-        
+    # Common timestamps based on status type
+    if new_status in ["Verified", "EN-ROUTE", "INVESTIGATING"]:
+        alert.acknowledged_at = datetime.utcnow()
+    elif new_status in ["Rejected False Positive", "FALSE ALARM", "TARGET LOST", "FOUND", "Completed"]:
+        alert.resolved_at = datetime.utcnow()
+
+    # Specialized logic for specific status transitions
+    if new_status == "Verified":
+        # Dispatch nearest patrol
+        await dispatch_service.assign_nearest_patrol(
+            db=db, 
+            alert=alert, 
+            event_lat=12.9716, # Placeholder coordinates, could be fetched from detection_event
+            event_lng=77.5946
+        )
+    elif new_status == "FOUND":
+        # Auto-resolve missing person
+        if getattr(alert, "missing_person", None):
+            alert.missing_person.status = "Found"
+            
     await db.commit()
 
     # Re-fetch with all relations eagerly loaded for serialization

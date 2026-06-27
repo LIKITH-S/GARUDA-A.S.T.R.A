@@ -35,3 +35,6 @@ class AlertRead(BaseModel):
     missing_person: Optional[MissingPersonBrief] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class AlertStatusUpdate(BaseModel):
+    status: str

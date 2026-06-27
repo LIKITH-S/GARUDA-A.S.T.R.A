@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
-import { getAlerts, verifyAlert, rejectAlert, API_URL } from '@/lib/api'
+import { getAlerts, updateAlertStatus, API_URL } from '@/lib/api'
 import { useWebSocket } from '@/lib/websocket'
 
 function mapAlert(a: any) {
@@ -105,7 +105,7 @@ export default function AlertsPage() {
 
   const handleConfirm = async (id: string) => {
     try {
-      await verifyAlert(id)
+      await updateAlertStatus(id, 'Verified')
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Verified' } : a))
       toast(`Alert ${id.substring(0, 8)} confirmed`, 'success')
     } catch (err) {
@@ -115,8 +115,8 @@ export default function AlertsPage() {
 
   const handleDismiss = async (id: string) => {
     try {
-      await rejectAlert(id)
-      setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Rejected' } : a))
+      await updateAlertStatus(id, 'Rejected False Positive')
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Rejected False Positive' } : a))
       toast(`Alert ${id.substring(0, 8)} rejected`, 'warning')
     } catch (err) {
       toast('Failed to reject alert', 'error')
@@ -125,7 +125,7 @@ export default function AlertsPage() {
 
   const badgeVariant = (status: string) => {
     if (status === 'Verified') return 'destructive'
-    if (status === 'Rejected') return 'success'
+    if (status === 'Rejected False Positive' || status === 'Rejected') return 'success'
     return 'warning'
   }
 
