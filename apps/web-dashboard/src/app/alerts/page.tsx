@@ -247,7 +247,7 @@ export default function AlertsPage() {
                               <div key={index} className="text-muted-foreground">
                                 {assignment.officer?.user?.full_name || 'Unknown Officer'} 
                                 {assignment.officer?.badge_number ? ` (${assignment.officer.badge_number})` : ''}
-                                {assignment.status === 'Accepted' ? ' - En Route' : ''}
+                                {assignment.status ? ` - ${assignment.status === 'Accepted' ? 'En Route' : assignment.status}` : ''}
                               </div>
                             ))}
                           </div>

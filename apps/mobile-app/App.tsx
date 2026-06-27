@@ -353,19 +353,33 @@ export default function App() {
       console.error('Failed to sync alert status with backend', e);
     }
 
-    const optimisticAssignment = status === 'EN-ROUTE' ? {
-      status: 'Accepted',
+    let assignmentStatusStr = 'Accepted';
+    if (status === 'INVESTIGATING') assignmentStatusStr = 'Investigating';
+    else if (status === 'TARGET LOST') assignmentStatusStr = 'Target Lost';
+    else if (status === 'FOUND') assignmentStatusStr = 'Found';
+    else if (status === 'FALSE ALARM') assignmentStatusStr = 'False Alarm';
+
+    const optimisticAssignment = status !== 'ALERT' ? {
+      status: assignmentStatusStr,
       officer: { badge_number: officer.unitId, user: { full_name: officer.name } }
     } : null;
+
+    const updateAssignments = (assignments: any[]) => {
+      if (!optimisticAssignment) return assignments;
+      const index = assignments.findIndex(a => a.officer?.badge_number === officer.unitId);
+      if (index >= 0) {
+        assignments[index].status = optimisticAssignment.status;
+      } else if (status === 'EN-ROUTE') {
+        assignments.push(optimisticAssignment);
+      }
+      return assignments;
+    };
 
     setAlerts((prevAlerts) =>
       prevAlerts.map((a) => {
         if (a.id === alertId) {
           const assignments = a.assignments ? [...a.assignments] : [];
-          if (optimisticAssignment && !assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
-            assignments.push(optimisticAssignment);
-          }
-          return { ...a, status, assignments };
+          return { ...a, status, assignments: updateAssignments(assignments) };
         }
         return a;
       })
@@ -375,10 +389,7 @@ export default function App() {
     setSelectedAlert((prev) => {
       if (prev && prev.id === alertId) {
         const assignments = prev.assignments ? [...prev.assignments] : [];
-        if (optimisticAssignment && !assignments.some(assign => assign.officer?.badge_number === officer.unitId)) {
-          assignments.push(optimisticAssignment);
-        }
-        return { ...prev, status, assignments };
+        return { ...prev, status, assignments: updateAssignments(assignments) };
       }
       return prev;
     });

@@ -178,8 +178,9 @@ export default function MissingPersonsPage() {
         ) : (
           filteredPersons.map((person) => (
             <Card key={person.id} className={cn(
-              "group overflow-hidden transition-all hover:shadow-lg hover:border-primary/30 animate-fade-in",
-              person.priority === 'URGENT' ? "border-red-500/20 shadow-red-500/5" : ""
+              "group overflow-hidden transition-all hover:shadow-lg animate-fade-in relative",
+              person.status === 'Found' ? "opacity-60 hover:opacity-100 grayscale hover:grayscale-0 border-green-500/20" :
+              person.priority === 'URGENT' ? "hover:border-primary/30 border-red-500/20 shadow-red-500/5" : "hover:border-primary/30"
             )}>
               <div className="h-48 bg-slate-800 flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[1]"></div>
@@ -196,14 +197,20 @@ export default function MissingPersonsPage() {
                    </div>
                  )}
                  <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
-                    <Badge variant={person.priority === 'URGENT' ? 'destructive' : person.priority === 'High' ? 'warning' : 'secondary'}>
-                      {person.priority}
-                    </Badge>
+                    {person.status === 'Found' ? (
+                      <Badge className="bg-green-600 hover:bg-green-500 text-white border-none">
+                        FOUND
+                      </Badge>
+                    ) : (
+                      <Badge variant={person.priority === 'URGENT' ? 'destructive' : person.priority === 'High' ? 'warning' : 'secondary'}>
+                        {person.priority}
+                      </Badge>
+                    )}
                     <Badge variant="outline" className="bg-black/50 backdrop-blur-md text-white border-white/10">
                       {person.caseNumber}
                     </Badge>
                  </div>
-                 {person.priority === 'URGENT' && (
+                 {person.priority === 'URGENT' && person.status !== 'Found' && (
                    <div className="absolute bottom-3 right-3 animate-bounce z-10">
                      <ShieldAlert className="w-6 h-6 text-red-500 drop-shadow-lg" />
                    </div>
@@ -211,7 +218,7 @@ export default function MissingPersonsPage() {
               </div>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">{person.name}</CardTitle>
+                  <CardTitle className={cn("text-xl", person.status === 'Found' ? "line-through text-muted-foreground" : "")}>{person.name}</CardTitle>
                   <span className="text-sm font-medium text-muted-foreground">{person.age} Years</span>
                 </div>
                 <CardDescription className="flex items-center gap-2">
@@ -230,18 +237,28 @@ export default function MissingPersonsPage() {
                    </div>
                    <div className="flex-1">
                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Case Status</p>
-                     <p className="text-xs font-medium mt-0.5">{person.status}</p>
+                     <p className={cn("text-xs font-bold mt-0.5", person.status === 'Found' ? "text-green-500" : "")}>{person.status}</p>
                    </div>
                 </div>
                 <div className="flex gap-2 mt-4">
                    <Button 
                      className="flex-1 text-xs" 
                      size="sm" 
+                     variant={person.status === 'Found' ? "secondary" : "default"}
                      onClick={() => handleSearchPerson(person.id, person.name)}
-                     disabled={isSearching === person.id}
+                     disabled={isSearching === person.id || person.status === 'Found'}
                    >
-                     <Search className={`w-3.5 h-3.5 mr-2 ${isSearching === person.id ? 'animate-spin' : ''}`} />
-                     {isSearching === person.id ? 'Searching DB...' : 'AI Match Search'}
+                     {person.status === 'Found' ? (
+                       <>
+                         <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                         Case Closed
+                       </>
+                     ) : (
+                       <>
+                         <Search className={`w-3.5 h-3.5 mr-2 ${isSearching === person.id ? 'animate-spin' : ''}`} />
+                         {isSearching === person.id ? 'Searching DB...' : 'AI Match Search'}
+                       </>
+                     )}
                    </Button>
                 </div>
               </CardContent>

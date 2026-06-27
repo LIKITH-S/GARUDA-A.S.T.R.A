@@ -183,9 +183,14 @@ export const AlertDetailsScreen: React.FC<AlertDetailsScreenProps> = ({
                       {assignment.officer?.user?.full_name || 'Unknown Officer'} 
                       {assignment.officer?.badge_number ? ` (${assignment.officer.badge_number})` : ''}
                     </Text>
-                    {assignment.status === 'Accepted' && (
-                      <Text style={{ color: COLORS.primary, marginLeft: 8, fontSize: 12, fontFamily: TYPOGRAPHY.bold }}>
-                        [ EN-ROUTE ]
+                    {assignment.status && (
+                      <Text style={{ 
+                        color: assignment.status === 'Accepted' ? COLORS.primary : COLORS.secondary, 
+                        marginLeft: 8, 
+                        fontSize: 12, 
+                        fontFamily: TYPOGRAPHY.bold 
+                      }}>
+                        [ {assignment.status === 'Accepted' ? 'EN-ROUTE' : assignment.status.toUpperCase()} ]
                       </Text>
                     )}
                   </View>

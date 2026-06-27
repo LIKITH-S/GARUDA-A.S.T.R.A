@@ -166,8 +166,8 @@ async def update_alert_status(
             event_lat=12.9716, # Placeholder coordinates, could be fetched from detection_event
             event_lng=77.5946
         )
-    elif new_status == "EN-ROUTE":
-        # The officer has accepted the assignment
+    elif new_status in ["EN-ROUTE", "INVESTIGATING", "TARGET LOST", "FALSE ALARM", "Rejected False Positive", "FOUND"]:
+        # The officer is updating the assignment
         if current_user.role.name in ["officer", "patrol"]:
             # Find the officer record for this user
             officer_result = await db.execute(
@@ -175,11 +175,19 @@ async def update_alert_status(
             )
             officer = officer_result.scalars().first()
             if officer:
+                # Determine assignment status mapping
+                assignment_status = "Accepted"
+                if new_status == "INVESTIGATING": assignment_status = "Investigating"
+                elif new_status == "TARGET LOST": assignment_status = "Target Lost"
+                elif new_status == "FOUND": assignment_status = "Found"
+                elif new_status in ["FALSE ALARM", "Rejected False Positive"]: assignment_status = "False Alarm"
+
                 # Check if this officer is already assigned
                 existing_assignment = next((a for a in alert.assignments if a.officer_id == officer.id), None)
                 if existing_assignment:
-                    existing_assignment.status = "Accepted"
-                else:
+                    existing_assignment.status = assignment_status
+                elif new_status == "EN-ROUTE":
+                    # Only auto-create assignment if they hit EN-ROUTE and it didn't exist
                     new_assignment = Assignment(
                         officer_id=officer.id,
                         dispatch_unit_id=officer.dispatch_unit_id,

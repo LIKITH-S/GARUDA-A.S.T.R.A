@@ -216,18 +216,24 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({
                 </View>
 
                 {/* Assigned Officer Info Strip */}
-                {alert.assignedOfficer && (
+                {alert.assignments && alert.assignments.length > 0 ? (
                   <View style={styles.officerStrip}>
-                    <View style={styles.officerStripLeft}>
-                      <View style={styles.officerAvatar}>
-                        <MaterialIcons name="person" size={14} color={COLORS.primary} />
-                      </View>
-                      <View>
-                        <Text style={styles.officerName}>{alert.assignedOfficer.name}</Text>
-                        <Text style={styles.officerMeta}>
-                          {alert.assignedOfficer.unitId} • {alert.assignedOfficer.rank}
-                        </Text>
-                      </View>
+                    <View style={{ flexDirection: 'column', gap: 8, flex: 1 }}>
+                      {alert.assignments.map((assignment, idx) => (
+                        <View key={idx} style={styles.officerStripLeft}>
+                          <View style={styles.officerAvatar}>
+                            <MaterialIcons name="local-police" size={14} color={COLORS.primary} />
+                          </View>
+                          <View>
+                            <Text style={styles.officerName}>
+                              {assignment.officer?.user?.full_name || 'Unknown Officer'}
+                            </Text>
+                            <Text style={styles.officerMeta}>
+                              {assignment.officer?.badge_number ? `Badge: ${assignment.officer.badge_number}` : 'No Badge'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
                     <View style={[
                       styles.statusChip,
@@ -264,6 +270,13 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({
                               : COLORS.outline,
                         },
                       ]}>{alert.status}</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={[styles.officerStrip, { backgroundColor: 'rgba(246, 70, 70, 0.05)', borderColor: COLORS.error }]}>
+                    <View style={styles.officerStripLeft}>
+                      <MaterialIcons name="warning" size={18} color={COLORS.error} />
+                      <Text style={[styles.officerName, { color: COLORS.error, marginLeft: 8 }]}>NOT ASSIGNED TO ANYONE</Text>
                     </View>
                   </View>
                 )}
