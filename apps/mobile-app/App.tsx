@@ -369,7 +369,7 @@ export default function App() {
       const index = assignments.findIndex(a => a.officer?.badge_number === officer.unitId);
       if (index >= 0) {
         assignments[index].status = optimisticAssignment.status;
-      } else if (status === 'EN-ROUTE') {
+      } else {
         assignments.push(optimisticAssignment);
       }
       return assignments;

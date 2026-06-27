@@ -14,6 +14,7 @@ from services.backend.services.dispatch_service import dispatch_service
 from database.models.registry import MissingPerson
 from database.models.operations import Assignment
 from database.models.personnel import Officer
+from services.backend.core.websocket_manager import manager
 
 router = APIRouter()
 
@@ -186,18 +187,18 @@ async def update_alert_status(
                 existing_assignment = next((a for a in alert.assignments if a.officer_id == officer.id), None)
                 if existing_assignment:
                     existing_assignment.status = assignment_status
-                elif new_status == "EN-ROUTE":
+                elif new_status in ["EN-ROUTE", "INVESTIGATING", "TARGET LOST", "FOUND", "FALSE ALARM", "Rejected False Positive"]:
                     # Check if ANY assignment already exists (since it's 1 officer max)
                     if len(alert.assignments) > 0:
                         from fastapi import HTTPException
                         raise HTTPException(status_code=400, detail="Alert is already assigned to another officer.")
                     
-                    # Only auto-create assignment if they hit EN-ROUTE and it didn't exist
+                    # Auto-create assignment with mapped status
                     new_assignment = Assignment(
                         officer_id=officer.id,
                         dispatch_unit_id=officer.dispatch_unit_id,
                         alert_id=alert.id,
-                        status="Accepted"
+                        status=assignment_status
                     )
                     db.add(new_assignment)
     elif new_status == "FOUND":
@@ -217,5 +218,17 @@ async def update_alert_status(
         )
         .where(Alert.id == uuid.UUID(alert_id))
     )
-    return result.unique().scalar_one()
+    updated_alert = result.unique().scalar_one()
+
+    # Broadcast to all connected clients
+    import asyncio
+    asyncio.create_task(manager.broadcast_global_alert({
+        "event": "alert_status_updated",
+        "data": {
+            "alert_id": str(updated_alert.id),
+            "status": updated_alert.status
+        }
+    }))
+
+    return updated_alert
 

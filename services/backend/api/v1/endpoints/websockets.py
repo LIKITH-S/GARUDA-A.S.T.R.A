@@ -67,5 +67,5 @@ async def websocket_endpoint(
                 payload = data.get("payload", {})
                 await telemetry_service.process_patrol_telemetry(str(user.id), payload)
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         manager.disconnect(user)
