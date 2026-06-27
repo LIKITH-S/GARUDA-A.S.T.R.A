@@ -190,3 +190,11 @@ export async function analyzeVideo(id: string) {
 export async function batchAnalyzeVideos() {
   return fetchApi('/uploads/batch-analyze', { method: 'POST' })
 }
+
+export async function searchPerson(id: string) {
+  return fetchApi(`/search/person/${id}`, { method: 'POST' })
+}
+
+export async function massSearch() {
+  return fetchApi('/search/mass', { method: 'POST' })
+}

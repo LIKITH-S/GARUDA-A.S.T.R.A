@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/Toast"
-import { getMissingPersons, createMissingPerson, uploadMissingPersonImage } from '@/lib/api'
+import { getMissingPersons, createMissingPerson, uploadMissingPersonImage, searchPerson, massSearch } from '@/lib/api'
 
 export default function MissingPersonsPage() {
   const { toast } = useToast()
@@ -32,6 +32,8 @@ export default function MissingPersonsPage() {
   const [file, setFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSearching, setIsSearching] = useState<string | null>(null)
+  const [isMassSearching, setIsMassSearching] = useState(false)
 
   const fetchPersons = async () => {
     try {
@@ -95,6 +97,40 @@ export default function MissingPersonsPage() {
     }
   }
 
+  const handleSearchPerson = async (id: string, name: string) => {
+    setIsSearching(id)
+    toast(`Initiating AI Vector Search against CCTV database for ${name}...`, 'success')
+    try {
+      const response = await searchPerson(id)
+      if (response.matches_found > 0) {
+        toast(`Search complete! Found ${response.matches_found} potential matches. Check Alerts tab.`, 'warning')
+      } else {
+        toast(`Search complete. No matches found for ${name} in the CCTV database.`, 'success')
+      }
+    } catch (e) {
+      toast(`Search failed for ${name}`, 'error')
+    } finally {
+      setIsSearching(null)
+    }
+  }
+
+  const handleMassSearch = async () => {
+    setIsMassSearching(true)
+    toast('Initiating Mass Vector Search for ALL missing persons...', 'success')
+    try {
+      const response = await massSearch()
+      if (response.matches_found > 0) {
+        toast(`Mass Sweep complete! Found ${response.matches_found} new matches. Check Alerts tab.`, 'warning')
+      } else {
+        toast('Mass Sweep complete. No new matches found.', 'success')
+      }
+    } catch (e) {
+      toast('Mass Search failed', 'error')
+    } finally {
+      setIsMassSearching(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -103,6 +139,10 @@ export default function MissingPersonsPage() {
           <p className="text-muted-foreground">Centralized database for active search operations and AI matching.</p>
         </div>
         <div className="flex gap-3">
+          <Button variant="secondary" size="sm" onClick={handleMassSearch} disabled={isMassSearching}>
+            <Search className={`w-4 h-4 mr-2 ${isMassSearching ? 'animate-spin' : ''}`} />
+            {isMassSearching ? 'Sweeping DB...' : 'Mass Search All'}
+          </Button>
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             New Case
@@ -194,9 +234,14 @@ export default function MissingPersonsPage() {
                    </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                   <Button className="flex-1 text-xs" size="sm" onClick={() => toast(`AI matching initiated for ${person.name}...`, 'success')}>
-                     <Search className="w-3.5 h-3.5 mr-2" />
-                     AI Match Search
+                   <Button 
+                     className="flex-1 text-xs" 
+                     size="sm" 
+                     onClick={() => handleSearchPerson(person.id, person.name)}
+                     disabled={isSearching === person.id}
+                   >
+                     <Search className={`w-3.5 h-3.5 mr-2 ${isSearching === person.id ? 'animate-spin' : ''}`} />
+                     {isSearching === person.id ? 'Searching DB...' : 'AI Match Search'}
                    </Button>
                 </div>
               </CardContent>
