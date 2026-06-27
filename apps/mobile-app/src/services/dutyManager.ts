@@ -73,9 +73,18 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
     if (data.event === 'possible_match_detected' || data.type === 'assignment') {
       const isAssignment = data.type === 'assignment';
       const alertData = isAssignment ? data : data.data;
-      const baseUrl = config.wsUrl.split('/ws')[0].replace('ws://', 'http://').replace('wss://', 'https://');
-      const photoPath = alertData.image_path?.startsWith('/') ? alertData.image_path : `/${alertData.image_path}`;
-      const finalPhotoUrl = alertData.image_path ? `${baseUrl}${photoPath}` : '';
+      let finalPhotoUrl = '';
+      if (alertData.image_path) {
+        try {
+          const wsUrlObj = new URL(config.wsUrl);
+          const httpProtocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
+          const baseUrl = `${httpProtocol}//${wsUrlObj.host}`;
+          const photoPath = alertData.image_path.startsWith('/') ? alertData.image_path : `/${alertData.image_path}`;
+          finalPhotoUrl = `${baseUrl}${photoPath}`;
+        } catch (e) {
+          console.warn('Invalid wsUrl for parsing', config.wsUrl);
+        }
+      }
       console.log('🚨 WEBSOCKET PAYLOAD:', JSON.stringify(alertData, null, 2));
       console.log('🖼️ COMPUTED IMAGE URL:', finalPhotoUrl);
 
