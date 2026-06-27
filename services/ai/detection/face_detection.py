@@ -18,6 +18,7 @@ class FaceDetector:
     @classmethod
     def _initialize_model(cls):
         try:
+            # pyrefly: ignore [missing-import]
             from ultralytics import YOLO
             import torch
             torch.set_num_threads(1) # Prevent OpenMP Segfault in background threads

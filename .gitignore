@@ -139,3 +139,7 @@ services/ai/tests/test_recognition.py
 
 # Project Report
 docs/report/
+
+# Uploaded assets
+services/backend/uploads/
+
