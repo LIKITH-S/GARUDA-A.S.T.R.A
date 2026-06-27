@@ -222,12 +222,11 @@ async def update_alert_status(
 
     # Broadcast to all connected clients
     try:
+        from services.backend.schemas.alert import AlertRead
+        alert_data = AlertRead.model_validate(updated_alert).model_dump(mode="json")
         await manager.broadcast_global_alert({
             "event": "alert_status_updated",
-            "data": {
-                "alert_id": str(updated_alert.id),
-                "status": updated_alert.status
-            }
+            "data": alert_data
         })
     except Exception as e:
         print(f"WS Broadcast error: {e}")

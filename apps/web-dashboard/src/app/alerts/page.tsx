@@ -95,8 +95,8 @@ export default function AlertsPage() {
       // Silent background refresh to replace optimistic entry with full data
       setTimeout(() => fetchAlerts(true), 800)
     } else if (lastMessage && lastMessage.event === 'alert_status_updated') {
-      // Whenever an alert is updated (status change or assignment), fetch the latest data silently
-      fetchAlerts(true)
+      const updatedAlert = mapAlert(lastMessage.data)
+      setAlerts(prev => prev.map(a => a.id === updatedAlert.id ? updatedAlert : a))
     }
   }, [lastMessage, fetchAlerts])
 
