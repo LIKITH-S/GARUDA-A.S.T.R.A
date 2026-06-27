@@ -22,10 +22,9 @@ from services.ai.detection.face_detection import FaceDetector
 from services.ai.detection.face_cropper import FaceCropper
 from services.ai.detection.preprocessing import Preprocessor
 
-# Recognition imports disabled to prevent TensorFlow/PyTorch CUDA conflicts (SEGV 11)
-# from services.ai.recognition.embedding_service import generate_embedding
-# from services.ai.recognition.ranking_service import get_best_match
-# from services.ai.recognition.identity_manager import load_identities
+from services.ai.recognition.embedding_service import generate_embedding
+from services.ai.recognition.ranking_service import get_best_match
+from services.ai.recognition.identity_manager import load_identities
 
 def run_analysis_pipeline(
     video_path: str, 
@@ -43,20 +42,22 @@ def run_analysis_pipeline(
     # 1. Threading safety for background execution
     cv2.setNumThreads(0)
     
-    # TensorFlow memory growth disabled for now since Recognition is disabled
-    # import tensorflow as tf
-    # try:
-    #     gpus = tf.config.list_physical_devices('GPU')
-    #     for gpu in gpus:
-    #         tf.config.experimental.set_memory_growth(gpu, True)
-    # except:
-    #     pass
+    import tensorflow as tf
+    try:
+        # Prevent TF from preallocating all memory if using GPU
+        gpus = tf.config.list_physical_devices('GPU')
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except:
+        pass
     
     if not os.path.exists(video_path):
         logger.error(f"Video file not found at {video_path}")
         raise FileNotFoundError(f"Video file not found at {video_path}")
 
     logger.info(f"--- Analyzing Video: {video_path} ---")
+    import time
+    start_time = time.time()
     props = VideoService.get_video_properties(video_path)
     total_frames = props.get("frame_count", 1000)
     if total_frames <= 0:
@@ -80,12 +81,18 @@ def run_analysis_pipeline(
     saved_crops_count = 0
     
     for frame, idx in frame_gen:
+        if idx % 50 == 0:
+            logger.info(f"Processing Frame {idx} / {total_frames} ...")
+            
         if progress_callback:
             progress_callback(min(99.0, (idx / total_frames) * 100.0))
             
         # Detection
         faces = FaceDetector.detect_faces(frame, threshold=0.30)
         
+        if len(faces) > 0:
+            logger.info(f"Frame {idx}: YOLO detected {len(faces)} faces.")
+            
         for face_idx, face in enumerate(faces):
             area = face["facial_area"]
             score = face["score"]
@@ -115,6 +122,7 @@ def run_analysis_pipeline(
                     crop_path = os.path.join(crops_dir, crop_filename)
                     cv2.imwrite(crop_path, crop)
                     saved_crops_count += 1
+                    logger.info(f"  -> Saved crop to: {crop_path}")
                 
                 results.append({
                     "frame_idx": idx,
@@ -128,5 +136,8 @@ def run_analysis_pipeline(
     if progress_callback:
         progress_callback(100.0)
         
-    logger.info(f"Pipeline completed. Saved {saved_crops_count} crops. Found {len(results)} faces total.")
+    
+    end_time = time.time()
+    elapsed_seconds = end_time - start_time
+    logger.info(f"Pipeline completed in {elapsed_seconds:.2f} seconds. Saved {saved_crops_count} crops. Found {len(results)} faces total.")
     return results

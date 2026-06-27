@@ -2,9 +2,7 @@ import sys
 import json
 import traceback
 
-import logging
 
-logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
 
 # Import and setup paths
 import os
@@ -13,13 +11,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from services.ai.pipeline import run_analysis_pipeline
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         print("ERROR:Missing arguments", flush=True)
         sys.exit(1)
         
     video_path = sys.argv[1]
     video_id = sys.argv[2]
     crops_dir = sys.argv[3]
+    log_file_path = sys.argv[4]
+    
+    import logging
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(message)s", 
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_file_path, mode='a')
+        ]
+    )
     
     def cb(prog):
         print(f"PROGRESS:{prog}", flush=True)

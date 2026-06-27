@@ -123,10 +123,12 @@ class FaceDetector:
                     if w < 20 or h < 20:
                         continue
                         
-                    # HEURISTIC 2: Disabled temporarily to debug missing crops
-                    # aspect_ratio = w / max(h, 1)
-                    # if aspect_ratio < 0.6 or aspect_ratio > 1.15:
-                    #     continue
+                    # HEURISTIC 2: Reject unnatural aspect ratios (like long thin arms)
+                    # A face is almost always a slightly tall rectangle. Width/Height usually between 0.65 and 0.95.
+                    # We will allow up to 1.15 to account for slight sideways angles.
+                    aspect_ratio = w / max(h, 1)
+                    if aspect_ratio < 0.6 or aspect_ratio > 1.15:
+                        continue
                         
                     faces.append({
                         "facial_area": area,
