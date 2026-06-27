@@ -44,8 +44,8 @@ async function main() {
   // Step 2: Build release APK locally
   const gradleCmd = isWindows ? 'gradlew.bat' : './gradlew';
   console.log('Starting local Android release build...');
+  
   try {
-    // We run assembleRelease to compile the release APK offline
     await runCommand(gradleCmd, ['assembleRelease'], androidDir);
     console.log('\n✔ Gradle build compiled successfully!');
   } catch (error) {

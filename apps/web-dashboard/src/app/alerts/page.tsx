@@ -21,6 +21,15 @@ import { useToast } from "@/components/ui/Toast"
 import { getAlerts, updateAlertStatus, API_URL } from '@/lib/api'
 import { useWebSocket } from '@/lib/websocket'
 
+function getImageUrl(path: string | null) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const baseUrl = API_URL.replace(/\/api\/v1\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = cleanPath.replace(/\\/g, '/');
+  return `${baseUrl}${normalizedPath}`;
+}
+
 function mapAlert(a: any) {
   return {
     id: String(a.id),
@@ -41,6 +50,8 @@ function mapAlert(a: any) {
     camera: a.detection_event?.camera_id
       ? String(a.detection_event.camera_id).substring(0, 8)
       : 'Unknown',
+    cropImagePath: a.detection_event?.image_path ?? null,
+    personImagePath: a.missing_person?.photo_path ?? null,
     imagePath: a.detection_event?.image_path ?? a.missing_person?.photo_path ?? null,
     assignments: a.assignments || [],
   }
@@ -85,7 +96,9 @@ export default function AlertsPage() {
         rawTime: new Date().toISOString(),
         time: new Date().toLocaleTimeString(),
         camera: String(d.camera_id).substring(0, 8),
-        imagePath: null,
+        cropImagePath: d.crop_image_path ?? null,
+        personImagePath: d.image_path ?? null,
+        imagePath: d.crop_image_path ?? d.image_path ?? null,
       }
       setAlerts(prev => {
         // avoid duplicate if already exists
@@ -188,24 +201,52 @@ export default function AlertsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-secondary/50 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden border border-border">
+                  <div className="aspect-video bg-secondary/50 rounded-lg flex mb-4 relative overflow-hidden border border-border">
                     {alert.status === 'Pending' && (
-                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
                         <div className="w-full h-8 bg-gradient-to-b from-transparent via-primary/10 to-transparent animate-scan-line"></div>
                       </div>
                     )}
-                    {alert.imagePath ? (
-                      <img 
-                        src={`${API_URL.replace('/api/v1', '')}${alert.imagePath.startsWith('/') ? '' : '/'}${alert.imagePath}`} 
-                        alt="Alert subject" 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <ShieldAlert className={cn("w-8 h-8 opacity-20", alert.status === 'Rejected' && "text-green-500")} />
-                    )}
-                    <div className="absolute bottom-2 right-2">
+                    
+                    <div className="w-1/2 h-full border-r border-border bg-black/20 flex items-center justify-center relative">
+                      {alert.cropImagePath ? (
+                        <img 
+                          src={getImageUrl(alert.cropImagePath)} 
+                          alt="Detection Crop" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                             e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <ShieldAlert className={cn("w-8 h-8 opacity-20", alert.status === 'Rejected' && "text-green-500")} />
+                      )}
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white font-medium uppercase tracking-wider backdrop-blur-sm border border-white/10">
+                        Detected
+                      </div>
+                    </div>
+
+                    <div className="w-1/2 h-full bg-black/20 flex items-center justify-center relative">
+                      {alert.personImagePath ? (
+                        <img 
+                          src={getImageUrl(alert.personImagePath)} 
+                          alt="Missing Person" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                             e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <User className="w-8 h-8 opacity-20" />
+                      )}
+                      <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white font-medium uppercase tracking-wider backdrop-blur-sm border border-white/10">
+                        Database
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-2 right-2 z-10">
                       <Badge variant="secondary" className="bg-black/60 backdrop-blur-md border-white/10">
-                        {alert.confidence}% Confidence
+                        {alert.confidence}% Match
                       </Badge>
                     </div>
                   </div>
