@@ -26,7 +26,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "deploy:apk": "node scripts/deploy-apk.js"
+    "deploy:apk": "node scripts/deploy-apk.js",
+    "postinstall": "node postinstall-patches.js"
   },
   "private": true
 }
