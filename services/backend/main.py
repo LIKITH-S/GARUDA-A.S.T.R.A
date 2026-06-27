@@ -32,10 +32,19 @@ app.add_middleware(
 # Add custom global exception handlers
 add_exception_handlers(app)
 
+from fastapi.responses import FileResponse, RedirectResponse
+
 # Serve uploaded files (missing person photos, etc.)
 uploads_path = Path("services/backend/uploads")
 uploads_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
+
+@app.get("/uploads/{path:path}", tags=["Uploads"])
+async def serve_uploads(path: str):
+    local_file = Path("services/backend/uploads") / path
+    if local_file.exists() and local_file.is_file():
+        return FileResponse(local_file)
+    # Fallback to the deployed production server for missing files
+    return RedirectResponse(f"https://backend.garudaastra.dpdns.org/uploads/{path}")
 
 @app.get("/health/live", tags=["Health"])
 async def health_live():

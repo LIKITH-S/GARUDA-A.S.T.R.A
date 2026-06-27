@@ -94,11 +94,18 @@ async def ingest_ai_event(
         match_found, missing_person_id, confidence = get_best_match(target_embedding, database, threshold=0.30)
         
         if match_found:
+            # Convert raw similarity float (0.0 - 1.0) to percentage (0.0 - 100.0)
+            confidence_percentage = confidence * 100.0
+            
+            # Apply confidence boost of 30% if initially below 40%
+            if confidence_percentage < 40.0:
+                confidence_percentage = min(confidence_percentage + 30.0, 100.0)
+                
             event = DetectionEvent(
                 id=str(uuid.uuid4()),
                 camera_id=camera_id,
                 person_id=missing_person_id,
-                confidence_score=confidence,
+                confidence_score=confidence_percentage,
                 timestamp=datetime.utcnow(),
                 match_type="facial_recognition",
                 image_path=relative_path
@@ -121,7 +128,7 @@ async def ingest_ai_event(
             person_result = await db.execute(select(MissingPerson).where(MissingPerson.id == missing_person_id))
             person = person_result.scalars().first()
             photo_path = person.photo_path if person else None
-
+ 
             # Broadcast to Admin & Dispatcher via WebSocket
             payload = {
                 "event": "possible_match_detected",
@@ -129,7 +136,7 @@ async def ingest_ai_event(
                     "alert_id": str(alert.id),
                     "missing_person_id": str(missing_person_id),
                     "camera_id": str(camera_id),
-                    "confidence": confidence,
+                    "confidence": confidence_percentage,
                     "lat": location_lat,
                     "lng": location_lng,
                     "image_path": photo_path

@@ -80,11 +80,15 @@ async def search_person_against_crops(person_id: uuid.UUID, threshold: float = 0
                 "similarity": similarity
             })
             
+            confidence_percentage = similarity * 100.0
+            if confidence_percentage < 40.0:
+                confidence_percentage = min(confidence_percentage + 30.0, 100.0)
+                
             # Create Detection Event
             new_event = DetectionEvent(
                 camera_id=default_cam.id,
                 timestamp=datetime.utcnow(),
-                confidence_score=similarity * 100,
+                confidence_score=confidence_percentage,
                 match_type="AI_Vector_Match",
                 person_id=person.id,
                 image_path=crop.image_path,
@@ -152,11 +156,15 @@ async def mass_search_all(threshold: float = 0.30, db: AsyncSession = Depends(ge
             if sim >= threshold:
                 # We intentionally allow duplicate DetectionEvents here if the user manually triggers a mass search
 
+                confidence_percentage = sim * 100.0
+                if confidence_percentage < 40.0:
+                    confidence_percentage = min(confidence_percentage + 30.0, 100.0)
+                    
                 # Create Event
                 new_event = DetectionEvent(
                     camera_id=default_cam.id,
                     timestamp=datetime.utcnow(),
-                    confidence_score=sim * 100,
+                    confidence_score=confidence_percentage,
                     match_type="AI_Mass_Sweep",
                     person_id=person.id,
                     image_path=crop.image_path,
