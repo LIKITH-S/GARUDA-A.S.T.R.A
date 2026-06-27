@@ -27,3 +27,8 @@ scipy
 ultralytics
 onnx
 onnxruntime
+torch
+torchvision
+transformers
+huggingface-hub
+tqdm
