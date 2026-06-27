@@ -4,8 +4,9 @@ from services.ai.recognition.similarity_service import calculate_cosine_similari
 
 logger = logging.getLogger(__name__)
 
-# Default threshold for ArcFace models (similarity score, higher is better)
-DEFAULT_THRESHOLD = 0.60
+# Default threshold for AdaFace models (similarity score, higher is better)
+# Set to 0.40 to reliably separate true matches from false matches in validation datasets.
+DEFAULT_THRESHOLD = 0.40
 
 def rank_matches(target_embedding: List[float], database: List[Dict], top_k: int = 5) -> List[Dict]:
     """
@@ -29,6 +30,7 @@ def rank_matches(target_embedding: List[float], database: List[Dict], top_k: int
             continue
             
         similarity = calculate_cosine_similarity(target_embedding, db_embedding)
+        logger.info(f"AdaFace Matching Diagnostics: Target vs Person {person_id} - Cosine Similarity: {similarity:.4f}")
         results.append({
             "id": person_id,
             "similarity": similarity

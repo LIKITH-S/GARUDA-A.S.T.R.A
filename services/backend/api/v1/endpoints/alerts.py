@@ -201,7 +201,7 @@ async def update_alert_status(
                         status=assignment_status
                     )
                     db.add(new_assignment)
-    elif new_status == "FOUND":
+    elif new_status in ["FOUND", "Completed", "completed", "Found"]:
         # Auto-resolve missing person
         if getattr(alert, "missing_person", None):
             alert.missing_person.status = "Found"

@@ -90,7 +90,8 @@ async def ingest_ai_event(
         if not target_embedding:
             continue
             
-        match_found, missing_person_id, confidence = get_best_match(target_embedding, database)
+        # Use lower threshold (0.30) for CCTV ingestion to handle low-res quality domain gap
+        match_found, missing_person_id, confidence = get_best_match(target_embedding, database, threshold=0.30)
         
         if match_found:
             event = DetectionEvent(

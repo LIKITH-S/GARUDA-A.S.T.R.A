@@ -29,7 +29,7 @@ def cosine_similarity(v1: list, v2: list) -> float:
         return 0.0
 
 @router.post("/person/{person_id}")
-async def search_person_against_crops(person_id: uuid.UUID, threshold: float = 0.50, db: AsyncSession = Depends(get_db)):
+async def search_person_against_crops(person_id: uuid.UUID, threshold: float = 0.30, db: AsyncSession = Depends(get_db)):
     """
     Performs a Vector Search comparing the missing person's embedding against all stored FaceCrops.
     Generates DetectionEvents and Alerts for matches.
@@ -113,7 +113,7 @@ async def search_person_against_crops(person_id: uuid.UUID, threshold: float = 0
     }
 
 @router.post("/mass")
-async def mass_search_all(threshold: float = 0.50, db: AsyncSession = Depends(get_db)):
+async def mass_search_all(threshold: float = 0.30, db: AsyncSession = Depends(get_db)):
     """
     Sweeps all missing persons against all FaceCrops in the database.
     """

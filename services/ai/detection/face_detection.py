@@ -87,9 +87,9 @@ class FaceDetector:
             return []
             
         try:
-            # OPTIMIZATION: Downscale frame for detection to massively speed up YOLO
+            # OPTIMIZATION: Downscale frame for detection to speed up YOLO on 2K/4K feeds
             orig_h, orig_w = frame.shape[:2]
-            max_dim = 640.0
+            max_dim = 1920.0
             scale = 1.0
             
             if max(orig_h, orig_w) > max_dim:

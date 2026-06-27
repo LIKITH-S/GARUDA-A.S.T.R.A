@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 
 import os
 import tempfile
@@ -83,7 +84,7 @@ class TestFaceDetection(unittest.TestCase):
         faces = FaceDetector.detect_faces(frame)
         self.assertEqual(faces, [])
         
-    @unittest.mock.patch('services.ai.detection.face_detection.face_model')
+    @unittest.mock.patch('services.ai.detection.face_detection.FaceDetector._model')
     def test_detect_faces_with_mock(self, mock_yolo):
         import numpy as np
         from unittest.mock import MagicMock
@@ -112,7 +113,7 @@ class TestFaceCropper(unittest.TestCase):
         frame = np.ones((100, 100, 3), dtype=np.uint8) * 255
         facial_area = [10, 20, 50, 60]
         
-        cropped = FaceCropper.crop_face(frame, facial_area)
+        cropped = FaceCropper.crop_face(frame, facial_area, padding_factor=0.0)
         self.assertIsNotNone(cropped)
         self.assertEqual(cropped.shape, (40, 40, 3))
         
@@ -145,7 +146,7 @@ class TestPreprocessing(unittest.TestCase):
         # Dummy crop frame 50x50
         crop_frame = np.ones((50, 50, 3), dtype=np.uint8) * 200
         
-        encoded_bytes = Preprocessor.preprocess_face(crop_frame)
+        encoded_bytes = Preprocessor.preprocess_face(crop_frame, target_size=(112, 112))
         self.assertIsInstance(encoded_bytes, bytes)
         self.assertTrue(len(encoded_bytes) > 0)
         

@@ -136,10 +136,14 @@ test_*.jpg
 test_*.mp4
 services/ai/test_custom_recognition.py
 services/ai/tests/test_recognition.py
+services/ai/tests/benchmark_face_models.py
+ai_pipeline.log
 
 # Project Report
 docs/report/
 
+
 # Uploaded assets
 services/backend/uploads/
+
 

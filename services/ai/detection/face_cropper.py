@@ -7,13 +7,14 @@ class FaceCropper:
     """Service for safely cropping facial areas from image frames."""
 
     @staticmethod
-    def crop_face(frame: np.ndarray, facial_area: list) -> np.ndarray:
+    def crop_face(frame: np.ndarray, facial_area: list, padding_factor: float = 0.25) -> np.ndarray:
         """
-        Safely crops a face from an image frame using clamped bounding box coordinates.
+        Safely crops a face from an image frame using clamped bounding box coordinates with padding.
         
         Args:
             frame: The original image frame (numpy array).
             facial_area: List or tuple containing [x1, y1, x2, y2] bounding box.
+            padding_factor: The ratio of padding to add on each side of the crop.
             
         Returns:
             The cropped image array (preserving original color format, usually BGR).
@@ -30,19 +31,33 @@ class FaceCropper:
                 
             height, width = frame.shape[:2]
             
+            x1 = int(facial_area[0])
+            y1 = int(facial_area[1])
+            x2 = int(facial_area[2])
+            y2 = int(facial_area[3])
+            
+            w = x2 - x1
+            h = y2 - y1
+            
+            # Apply padding
+            x1_pad = x1 - int(w * padding_factor)
+            y1_pad = y1 - int(h * padding_factor)
+            x2_pad = x2 + int(w * padding_factor)
+            y2_pad = y2 + int(h * padding_factor)
+            
             # Clamp coordinates to frame boundaries
-            x1 = max(0, int(facial_area[0]))
-            y1 = max(0, int(facial_area[1]))
-            x2 = min(width, int(facial_area[2]))
-            y2 = min(height, int(facial_area[3]))
+            x1_clamp = max(0, x1_pad)
+            y1_clamp = max(0, y1_pad)
+            x2_clamp = min(width, x2_pad)
+            y2_clamp = min(height, y2_pad)
             
             # Ensure valid slicing area
-            if x1 >= x2 or y1 >= y2:
+            if x1_clamp >= x2_clamp or y1_clamp >= y2_clamp:
                 logger.error("Clamped bounding box has zero or negative area.")
                 return None
                 
             # Perform slicing
-            cropped = frame[y1:y2, x1:x2]
+            cropped = frame[y1_clamp:y2_clamp, x1_clamp:x2_clamp]
             return cropped
             
         except Exception as e:
