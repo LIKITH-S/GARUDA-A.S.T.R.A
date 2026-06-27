@@ -31,7 +31,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 }
 
 export async function getAlerts() {
-  return fetchApi('/alerts/')
+  return fetchApi(`/alerts/?t=${Date.now()}`, { cache: 'no-store' })
 }
 
 export async function updateAlertStatus(id: string, status: string) {

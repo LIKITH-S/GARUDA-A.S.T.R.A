@@ -92,6 +92,7 @@ export function WebSocketProvider({ children, token, onAuthExpired }: WebSocketP
           const data = JSON.parse(event.data)
           // Ignore pong responses from heartbeat
           if (data.type === 'pong') return
+          console.log('[WebSocket] Received message:', data)
           setLastMessage(data)
         } catch (e) {
           console.error('Failed to parse WS message:', e)

@@ -221,14 +221,16 @@ async def update_alert_status(
     updated_alert = result.unique().scalar_one()
 
     # Broadcast to all connected clients
-    import asyncio
-    asyncio.create_task(manager.broadcast_global_alert({
-        "event": "alert_status_updated",
-        "data": {
-            "alert_id": str(updated_alert.id),
-            "status": updated_alert.status
-        }
-    }))
+    try:
+        await manager.broadcast_global_alert({
+            "event": "alert_status_updated",
+            "data": {
+                "alert_id": str(updated_alert.id),
+                "status": updated_alert.status
+            }
+        })
+    except Exception as e:
+        print(f"WS Broadcast error: {e}")
 
     return updated_alert
 
