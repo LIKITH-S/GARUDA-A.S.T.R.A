@@ -54,48 +54,49 @@ async def process_video_task(video_id: str):
             python_exec = sys.executable
             run_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ai", "run_pipeline.py"))
             
+            log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai_pipeline.log"))
+            
+            # Start the log entry explicitly
+            with open(log_file_path, "a") as f:
+                f.write(f"\n--- STARTING ANALYSIS FOR VIDEO: {video_id} ---\n")
+            
             process = await asyncio.create_subprocess_exec(
-                python_exec, "-u", run_script, video_path, video_id, video_crops_dir,
+                python_exec, "-u", run_script, video_path, video_id, video_crops_dir, log_file_path,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT
             )
             
-            # We will stream all AI logs to a dedicated file in the root directory
-            log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai_pipeline.log"))
+            last_db_commit_prog = -1.0
             
-            with open(log_file_path, "a") as log_file:
-                log_file.write(f"\\n--- STARTING ANALYSIS FOR VIDEO: {video_id} ---\\n")
-                log_file.flush()
-                
-                results = []
-                while True:
-                    line = await process.stdout.readline()
-                    if not line:
-                        break
+            results = []
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                    
+                try:
+                    decoded = line.decode('utf-8').strip()
+                    if decoded.startswith("PROGRESS:"):
+                        prog = float(decoded.split(":", 1)[1])
+                        video.progress = prog
                         
-                    try:
-                        decoded = line.decode('utf-8').strip()
-                        if decoded.startswith("PROGRESS:"):
-                            prog = float(decoded.split(":", 1)[1])
-                            video.progress = prog
+                        # Throttle DB commits to every 1% to prevent massive I/O lag
+                        if prog - last_db_commit_prog >= 1.0 or prog >= 99.0:
                             await db.commit()
-                        elif decoded.startswith("RESULT:"):
-                            results_str = decoded.split(":", 1)[1]
-                            results = json.loads(results_str)
-                        elif decoded.startswith("ERROR:"):
-                            err_msg = f"Pipeline error: {decoded}"
-                            logger.error(err_msg)
-                            log_file.write(f"ERROR: {err_msg}\\n")
-                            log_file.flush()
-                            raise Exception(decoded[6:])
-                        else:
-                            # Forward other logs to the dedicated file instead of uvicorn logger
-                            log_file.write(f"{decoded}\\n")
-                            log_file.flush()
-                    except Exception as e:
-                        if "Pipeline error:" not in str(e):
-                            log_file.write(f"Parse Warning: {e} | Line: {line}\\n")
-                            log_file.flush()
+                            last_db_commit_prog = prog
+                            
+                    elif decoded.startswith("RESULT:"):
+                        results_str = decoded.split(":", 1)[1]
+                        results = json.loads(results_str)
+                    elif decoded.startswith("ERROR:"):
+                        err_msg = f"Pipeline error: {decoded}"
+                        logger.error(err_msg)
+                        raise Exception(decoded[6:])
+                    else:
+                        pass # Subprocess writes this directly to log_file_path now!
+                except Exception as e:
+                    if "Pipeline error:" not in str(e):
+                        logger.warning(f"Parse Warning: {e} | Line: {line}")
             
             await process.wait()
             if process.returncode != 0:
