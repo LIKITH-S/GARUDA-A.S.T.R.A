@@ -108,10 +108,15 @@ async def process_video_task(video_id: str):
             if results and len(results) > 0:
                 logger.info(f"Saving {len(results)} face crops to database...")
                 for res in results:
+                    raw_crop_path = res.get("crop_path", "")
+                    clean_path = raw_crop_path.replace("\\", "/")
+                    if "uploads/" in clean_path:
+                        clean_path = clean_path[clean_path.find("uploads/"):]
+                    
                     crop = FaceCrop(
                         video_id=video.id,
                         frame_idx=res.get("frame_idx", 0),
-                        image_path=res.get("crop_path", ""),
+                        image_path=clean_path,
                         embedding=res.get("embedding")
                     )
                     db.add(crop)

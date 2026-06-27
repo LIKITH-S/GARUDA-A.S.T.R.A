@@ -122,11 +122,19 @@ export default function App() {
         try {
           const { getAlertsApi, getMissingPersonsApi } = require('./src/services/api');
           
+          const getSafePhotoUrl = (rawPath: string | undefined, fallbackName = 'Unknown') => {
+            if (!rawPath) return `https://ui-avatars.com/api/?name=${fallbackName}`;
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+            let photoPath = rawPath.replace(/\\/g, '/');
+            const uploadsIdx = photoPath.indexOf('uploads/');
+            if (uploadsIdx > -1) photoPath = photoPath.substring(uploadsIdx);
+            photoPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+            return `${baseUrl}${photoPath}`;
+          };
+
           const backendCases = await getMissingPersonsApi();
           const mappedCases: CaseItem[] = backendCases.map((c: any) => {
-            const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
-            const photoPath = c.photo_path?.startsWith('/') ? c.photo_path : `/${c.photo_path}`;
-            const finalPhotoUrl = c.photo_path ? `${baseUrl}${photoPath}` : 'https://ui-avatars.com/api/?name=Unknown';
+            const finalPhotoUrl = getSafePhotoUrl(c.photo_path, 'Unknown');
             return {
               id: c.id,
               name: c.full_name,
@@ -149,9 +157,7 @@ export default function App() {
           );
           
           const mappedAlerts = forwardedAlerts.map((a: any) => {
-            const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
-            const photoPath = a.missing_person?.photo_path?.startsWith('/') ? a.missing_person.photo_path : `/${a.missing_person?.photo_path}`;
-            const finalPhotoUrl = a.missing_person?.photo_path ? `${baseUrl}${photoPath}` : 'https://ui-avatars.com/api/?name=Unknown';
+            const finalPhotoUrl = getSafePhotoUrl(a.missing_person?.photo_path, 'Unknown');
             console.log('App.tsx Old Alert URL:', finalPhotoUrl);
             
             return {

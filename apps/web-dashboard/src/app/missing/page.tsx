@@ -26,6 +26,19 @@ export default function MissingPersonsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [persons, setPersons] = useState<any[]>([])
   
+  const getSafePhotoUrl = (rawPath: string | null) => {
+    if (!rawPath) return '';
+    if (rawPath.startsWith('http')) return rawPath;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/api\/v1\/?$/, '');
+    let cleanPath = rawPath.replace(/\\/g, '/');
+    const uploadsIdx = cleanPath.indexOf('uploads/');
+    if (uploadsIdx > -1) {
+      cleanPath = cleanPath.substring(uploadsIdx);
+    }
+    cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     full_name: '', age: '', gender: '', description: '', last_seen_location: '', last_seen_at: '', priority: 'Normal'
@@ -187,9 +200,13 @@ export default function MissingPersonsPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[1]"></div>
                  {person.photoPath ? (
                    <img
-                     src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000'}/${person.photoPath}`}
+                     src={getSafePhotoUrl(person.photoPath)}
                      alt={person.name}
                      className="w-full h-full object-cover"
+                     onError={(e) => {
+                       e.currentTarget.onerror = null;
+                       (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div class="text-muted-foreground flex flex-col items-center gap-2 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="text-[10px] uppercase tracking-widest font-bold">Image unavailable</span></div>';
+                     }}
                    />
                  ) : (
                    <div className="text-muted-foreground flex flex-col items-center gap-2 opacity-20">

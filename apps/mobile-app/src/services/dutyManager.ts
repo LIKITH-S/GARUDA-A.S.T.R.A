@@ -79,7 +79,13 @@ export async function goOnDuty(config: DutyConfig): Promise<boolean> {
           const wsUrlObj = new URL(config.wsUrl);
           const httpProtocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
           const baseUrl = `${httpProtocol}//${wsUrlObj.host}`;
-          const photoPath = alertData.image_path.startsWith('/') ? alertData.image_path : `/${alertData.image_path}`;
+          // Handle absolute server paths: extract from 'uploads/' onwards
+          let photoPath = alertData.image_path.replace(/\\/g, '/');
+          const uploadsIdx = photoPath.indexOf('uploads/');
+          if (uploadsIdx > -1) {
+            photoPath = photoPath.substring(uploadsIdx);
+          }
+          photoPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
           finalPhotoUrl = `${baseUrl}${photoPath}`;
         } catch (e) {
           console.warn('Invalid wsUrl for parsing', config.wsUrl);

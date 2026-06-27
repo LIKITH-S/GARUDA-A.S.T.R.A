@@ -25,9 +25,14 @@ function getImageUrl(path: string | null) {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const baseUrl = API_URL.replace(/\/api\/v1\/?$/, '');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const normalizedPath = cleanPath.replace(/\\/g, '/');
-  return `${baseUrl}${normalizedPath}`;
+  // Normalize backslashes to forward slashes first to handle Windows paths
+  let cleanPath = path.replace(/\\/g, '/');
+  const uploadsIdx = cleanPath.indexOf('uploads/');
+  if (uploadsIdx > -1) {
+    cleanPath = cleanPath.substring(uploadsIdx);
+  }
+  cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  return `${baseUrl}${cleanPath}`;
 }
 
 function mapAlert(a: any) {
@@ -209,13 +214,14 @@ export default function AlertsPage() {
                     )}
                     
                     <div className="w-1/2 h-full border-r border-border bg-black/20 flex items-center justify-center relative">
-                      {alert.cropImagePath ? (
+                      {(alert.cropImagePath || alert.personImagePath) ? (
                         <img 
-                          src={getImageUrl(alert.cropImagePath)} 
+                          src={getImageUrl(alert.cropImagePath || alert.personImagePath)} 
                           alt="Detection Crop" 
                           className="w-full h-full object-cover" 
                           onError={(e) => {
-                             e.currentTarget.style.display = 'none';
+                             e.currentTarget.onerror = null;
+                             (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div class="flex flex-col items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg><span class="text-[10px] opacity-30">Image unavailable</span></div>';
                           }}
                         />
                       ) : (
@@ -233,7 +239,8 @@ export default function AlertsPage() {
                           alt="Missing Person" 
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                             e.currentTarget.style.display = 'none';
+                             e.currentTarget.onerror = null;
+                             (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div class="flex flex-col items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="text-[10px] opacity-30">Photo unavailable</span></div>';
                           }}
                         />
                       ) : (

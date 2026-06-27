@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime
 import uuid
@@ -10,6 +10,16 @@ class DetectionEventRead(BaseModel):
     confidence_score: float
     match_type: str
     image_path: Optional[str] = None
+
+    @field_validator('image_path')
+    @classmethod
+    def clean_image_path(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        clean = v.replace('\\', '/')
+        if 'uploads/' in clean:
+            return clean[clean.find('uploads/'):]
+        return v
 
     model_config = ConfigDict(from_attributes=True)
 
