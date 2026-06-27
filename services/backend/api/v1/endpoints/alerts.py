@@ -73,15 +73,47 @@ async def read_alerts(
     limit: int = 100,
 ) -> List[Alert]:
     """Retrieve all alerts with detection event and person details."""
-    result = await db.execute(
-        select(Alert)
-        .options(
-            joinedload(Alert.detection_event),
-            joinedload(Alert.missing_person)
+    from sqlalchemy import case, desc
+    
+    query = select(Alert).options(
+        joinedload(Alert.detection_event),
+        joinedload(Alert.missing_person)
+    )
+    
+    if current_user.role.name in ["officer", "patrol"]:
+        # Only show Verified alerts to patrol officers on their mobile app
+        query = query.where(Alert.status == "Verified").order_by(Alert.created_at.desc())
+    else:
+        # Sort criteria for admin/dispatcher dashboard:
+        # 1. "Pending" / "pending" status first
+        # 2. Missing Person Priority (Critical -> High -> Normal -> Low)
+        # 3. Confidence score of matched cropface descending
+        # 4. Creation date descending
+        status_order = case(
+            (Alert.status.in_(["Pending", "pending"]), 0),
+            else_=1
         )
-        .order_by(Alert.created_at.desc())
-        .offset(skip)
-        .limit(limit)
+        priority_order = case(
+            (MissingPerson.priority.in_(["Critical", "critical"]), 0),
+            (MissingPerson.priority.in_(["High", "high"]), 1),
+            (MissingPerson.priority.in_(["Normal", "normal"]), 2),
+            (MissingPerson.priority.in_(["Low", "low"]), 3),
+            else_=4
+        )
+        
+        query = (
+            query.outerjoin(DetectionEvent, Alert.detection_event_id == DetectionEvent.id)
+            .outerjoin(MissingPerson, Alert.missing_person_id == MissingPerson.id)
+            .order_by(
+                status_order,
+                priority_order,
+                desc(DetectionEvent.confidence_score),
+                desc(Alert.created_at)
+            )
+        )
+        
+    result = await db.execute(
+        query.offset(skip).limit(limit)
     )
     return result.scalars().all()
 
@@ -172,3 +204,49 @@ async def reject_alert(
         .where(Alert.id == uuid.UUID(alert_id))
     )
     return result.scalar_one()
+
+@router.post("/{alert_id}/complete", response_model=AlertRead)
+async def complete_alert(
+    alert_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Patrol/Officer or Admin/Dispatcher marks an alert as complete.
+    This resolves the alert and changes the missing person's status to "Found".
+    """
+    if current_user.role.name not in ["admin", "dispatcher", "officer", "patrol"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .where(Alert.id == uuid.UUID(alert_id))
+    )
+    alert = result.scalar_one_or_none()
+
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    alert.status = "Completed"
+    alert.resolved_at = datetime.utcnow()
+    
+    if alert.missing_person:
+        alert.missing_person.status = "Found"
+        
+    await db.commit()
+
+    # Re-fetch with all relations eagerly loaded for serialization
+    result = await db.execute(
+        select(Alert)
+        .options(
+            joinedload(Alert.detection_event),
+            joinedload(Alert.missing_person)
+        )
+        .where(Alert.id == uuid.UUID(alert_id))
+    )
+    return result.scalar_one()
+

@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from services.backend.api import deps
 from database.models.auth import User
 from database.models.registry import MissingPerson
-from services.backend.schemas.missing_person import MissingPersonCreate, MissingPersonRead
+from services.backend.schemas.missing_person import MissingPersonCreate, MissingPersonRead, MissingPersonStatusUpdate
 
 router = APIRouter()
 
@@ -117,3 +117,29 @@ async def upload_missing_person_image(
         logging.getLogger(__name__).error(f"Error running automatic vector search on upload: {e}")
     
     return {"status": "success", "message": "Face embedding generated successfully"}
+
+@router.patch("/{person_id}/status", response_model=MissingPersonRead)
+async def update_missing_person_status(
+    person_id: uuid.UUID,
+    status_in: MissingPersonStatusUpdate,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> MissingPerson:
+    """
+    Update the status of a missing person (e.g. mark as 'Found').
+    """
+    if current_user.role.name not in ["admin", "dispatcher", "officer", "patrol"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    result = await db.execute(select(MissingPerson).where(MissingPerson.id == person_id))
+    person = result.scalars().first()
+    
+    if not person:
+        raise HTTPException(status_code=404, detail="Missing person not found")
+        
+    person.status = status_in.status
+    await db.commit()
+    await db.refresh(person)
+    
+    return person
+

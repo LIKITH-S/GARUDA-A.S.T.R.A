@@ -124,7 +124,12 @@ async def mass_search_all(threshold: float = 0.50, db: AsyncSession = Depends(ge
     """
     Sweeps all missing persons against all FaceCrops in the database.
     """
-    persons_result = await db.execute(select(MissingPerson).where(MissingPerson.face_embedding != None))
+    persons_result = await db.execute(
+        select(MissingPerson).where(
+            MissingPerson.status == "Reported",
+            MissingPerson.face_embedding != None
+        )
+    )
     persons = persons_result.scalars().all()
     
     total_matches = 0

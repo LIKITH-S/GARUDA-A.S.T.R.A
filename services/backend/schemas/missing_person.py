@@ -24,3 +24,7 @@ class MissingPersonRead(MissingPersonBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class MissingPersonStatusUpdate(BaseModel):
+    status: str
+
