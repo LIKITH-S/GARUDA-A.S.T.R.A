@@ -118,7 +118,7 @@ async def read_alerts(
     result = await db.execute(
         query.offset(skip).limit(limit)
     )
-    return result.scalars().all()
+    return result.unique().scalars().all()
 
 @router.patch("/{alert_id}/status", response_model=AlertRead)
 async def update_alert_status(
@@ -143,7 +143,7 @@ async def update_alert_status(
         )
         .where(Alert.id == uuid.UUID(alert_id))
     )
-    alert = result.scalar_one_or_none()
+    alert = result.unique().scalar_one_or_none()
 
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
@@ -204,5 +204,5 @@ async def update_alert_status(
         )
         .where(Alert.id == uuid.UUID(alert_id))
     )
-    return result.scalar_one()
+    return result.unique().scalar_one()
 
