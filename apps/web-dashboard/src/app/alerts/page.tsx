@@ -238,7 +238,7 @@ export default function AlertsPage() {
                          alert.status === 'Rejected False Positive' || alert.status === 'Rejected' ? 'Marked as False Positive' : alert.status}
                       </span>
                     </div>
-                    {(alert.status === 'Verified' || alert.status === 'EN-ROUTE' || alert.status === 'INVESTIGATING') && (
+                    {(alert.status !== 'Pending' && alert.status !== 'Rejected' && alert.status !== 'Rejected False Positive') && (
                       <div className="w-full text-center text-xs p-2 rounded-md bg-secondary/30">
                         {alert.assignments?.length > 0 ? (
                           <div className="space-y-1">
