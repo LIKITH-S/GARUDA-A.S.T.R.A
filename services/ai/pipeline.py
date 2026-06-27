@@ -23,8 +23,6 @@ from services.ai.detection.face_cropper import FaceCropper
 from services.ai.detection.preprocessing import Preprocessor
 
 from services.ai.recognition.embedding_service import generate_embedding
-from services.ai.recognition.ranking_service import get_best_match
-from services.ai.recognition.identity_manager import load_identities
 
 def run_analysis_pipeline(
     video_path: str, 
@@ -41,16 +39,7 @@ def run_analysis_pipeline(
     
     # 1. Threading safety for background execution
     cv2.setNumThreads(0)
-    
-    import tensorflow as tf
-    try:
-        # Prevent TF from preallocating all memory if using GPU
-        gpus = tf.config.list_physical_devices('GPU')
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except:
-        pass
-    
+
     if not os.path.exists(video_path):
         logger.error(f"Video file not found at {video_path}")
         raise FileNotFoundError(f"Video file not found at {video_path}")
@@ -63,15 +52,6 @@ def run_analysis_pipeline(
     if total_frames <= 0:
         total_frames = 1000
 
-    # 2. Load Registered Identities for Recognition (Disabled for now)
-    # identities_dict = load_identities()
-    database = []
-    # for person_id, info in identities_dict.items():
-    #     database.append({
-    #         "id": info["name"],
-    #         "embedding": info["embedding"]
-    #     })
-    logger.info(f"Loaded {len(database)} registered identities (Recognition currently disabled).")
 
     # 3. Extract Frames
     # skip_interval could be dynamic based on fps, default 5 for now
@@ -104,21 +84,16 @@ def run_analysis_pipeline(
                 # Preprocessing
                 jpeg_bytes = Preprocessor.preprocess_face(crop)
                 
-                match_found = False
-                matched_name = "Unknown"
-                conf = 0.0
-                
+                emb = None
                 if jpeg_bytes:
-                    # Recognition Integration (Disabled for now per user request)
-                    # emb = generate_embedding(jpeg_bytes)
-                    # if emb:
-                    #     match_found, matched_name, conf = get_best_match(emb, database)
-                    pass
+                    # Ingestion Phase: Only extract embedding, do NOT match.
+                    emb = generate_embedding(jpeg_bytes)
                 
                 # Save crop to disk if requested
+                crop_path = None
                 if save_crops and crops_dir:
                     os.makedirs(crops_dir, exist_ok=True)
-                    crop_filename = f"frame_{idx}_face_{face_idx}_{matched_name.replace(' ', '_')}.jpg"
+                    crop_filename = f"frame_{idx}_face_{face_idx}.jpg"
                     crop_path = os.path.join(crops_dir, crop_filename)
                     cv2.imwrite(crop_path, crop)
                     saved_crops_count += 1
@@ -128,9 +103,8 @@ def run_analysis_pipeline(
                     "frame_idx": idx,
                     "facial_area": area,
                     "detection_score": score,
-                    "match_found": match_found,
-                    "matched_name": matched_name,
-                    "recognition_confidence": conf
+                    "crop_path": crop_path,
+                    "embedding": emb
                 })
 
     if progress_callback:
