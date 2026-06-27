@@ -48,7 +48,14 @@ export async function updateAlertStatusApi(id: string, status: string) {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to update alert status');
+    let errorText = 'Failed to update alert status';
+    try {
+      const errData = await response.json();
+      errorText = JSON.stringify(errData);
+    } catch (e) {
+      errorText = await response.text();
+    }
+    throw new Error(`Failed to update alert status: ${response.status} ${errorText}`);
   }
 
   return response.json();
