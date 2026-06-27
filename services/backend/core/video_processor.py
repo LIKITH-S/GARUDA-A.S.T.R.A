@@ -6,8 +6,7 @@ from datetime import datetime
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db.session import AsyncSessionLocal
-from database.models.infrastructure import VideoFootage
-from services.ai.detection.face_detection import FaceDetector
+from database.models.infrastructure import VideoFootage, FaceCrop
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +62,8 @@ async def process_video_task(video_id: str):
             process = await asyncio.create_subprocess_exec(
                 python_exec, "-u", run_script, video_path, video_id, video_crops_dir, log_file_path,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT
+                stderr=asyncio.subprocess.STDOUT,
+                limit=1024 * 1024 * 10  # 10 MB
             )
             
             last_db_commit_prog = -1.0
@@ -104,11 +104,23 @@ async def process_video_task(video_id: str):
                 logger.error(error_msg)
                 raise Exception(error_msg)
 
+            # Save crops to database
+            if results and len(results) > 0:
+                logger.info(f"Saving {len(results)} face crops to database...")
+                for res in results:
+                    crop = FaceCrop(
+                        video_id=video.id,
+                        frame_idx=res.get("frame_idx", 0),
+                        image_path=res.get("crop_path", ""),
+                        embedding=res.get("embedding")
+                    )
+                    db.add(crop)
+
             # Mark as completed
             video.status = "COMPLETED"
             video.progress = 100.0
             await db.commit()
-            logger.info(f"Finished processing video {video_id}. Processed {len(results)} face detections.")
+            logger.info(f"Finished processing video {video_id}. Saved {len(results)} face crops to database.")
 
         except Exception as e:
             logger.error(f"Error processing video {video_id}: {e}")

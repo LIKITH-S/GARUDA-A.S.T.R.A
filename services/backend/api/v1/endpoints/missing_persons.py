@@ -108,4 +108,12 @@ async def upload_missing_person_image(
     
     await db.commit()
     
+    # Trigger vector search automatically in the background to check history
+    try:
+        from services.backend.api.v1.endpoints.search import search_person_against_crops
+        await search_person_against_crops(person_id=uuid.UUID(person_id), db=db)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error running automatic vector search on upload: {e}")
+    
     return {"status": "success", "message": "Face embedding generated successfully"}
