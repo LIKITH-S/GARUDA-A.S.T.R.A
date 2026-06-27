@@ -70,15 +70,8 @@ async def search_person_against_crops(person_id: uuid.UUID, threshold: float = 0
         similarity = cosine_similarity(person.face_embedding, crop.embedding)
         
         if similarity >= threshold:
-            # Check if a DetectionEvent already exists for this person and this crop
-            existing_event = await db.execute(
-                select(DetectionEvent).where(
-                    DetectionEvent.person_id == person.id,
-                    DetectionEvent.image_path == crop.image_path
-                )
-            )
-            if existing_event.scalars().first():
-                continue
+            # We intentionally allow duplicate DetectionEvents here if the user manually triggers a search, 
+            # so the UI correctly reports the matches instead of returning 0 matches.
 
             matches.append({
                 "crop_id": str(crop.id),
@@ -157,15 +150,7 @@ async def mass_search_all(threshold: float = 0.50, db: AsyncSession = Depends(ge
         for person in persons:
             sim = cosine_similarity(person.face_embedding, crop.embedding)
             if sim >= threshold:
-                # Check if a DetectionEvent already exists for this person and this crop
-                existing_event = await db.execute(
-                    select(DetectionEvent).where(
-                        DetectionEvent.person_id == person.id,
-                        DetectionEvent.image_path == crop.image_path
-                    )
-                )
-                if existing_event.scalars().first():
-                    continue
+                # We intentionally allow duplicate DetectionEvents here if the user manually triggers a mass search
 
                 # Create Event
                 new_event = DetectionEvent(
