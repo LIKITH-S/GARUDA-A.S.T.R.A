@@ -1,4 +1,5 @@
-from sqlalchemy import String, Float, DateTime, ForeignKey
+from sqlalchemy import String, Float, DateTime, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
 from datetime import datetime
@@ -35,3 +36,15 @@ class VideoFootage(Base, UUIDMixin, TimestampMixin):
     sector: Mapped[Optional[str]] = mapped_column(String(255))
     priority: Mapped[Optional[str]] = mapped_column(String(50), default="Normal")
     progress: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    face_crops: Mapped[List["FaceCrop"]] = relationship(back_populates="video_footage", cascade="all, delete-orphan")
+
+class FaceCrop(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "face_crops"
+
+    video_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("video_footages.id"))
+    frame_idx: Mapped[int] = mapped_column(Integer)
+    image_path: Mapped[str] = mapped_column(String(1024))
+    embedding: Mapped[Optional[list]] = mapped_column(JSON)
+    
+    video_footage: Mapped["VideoFootage"] = relationship(back_populates="face_crops")

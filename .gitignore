@@ -134,6 +134,8 @@ create_test_assets.py
 run_validation_tests.py
 test_*.jpg
 test_*.mp4
+services/ai/test_custom_recognition.py
+services/ai/tests/test_recognition.py
 
 # Project Report
 docs/report/
